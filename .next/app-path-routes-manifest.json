@@ -1,13 +1,13 @@
 {
   "/_not-found/page": "/_not-found",
   "/page": "/",
-  "/dashboard/page": "/dashboard",
-  "/dashboard/patients/page": "/dashboard/patients",
   "/dashboard/appointments/page": "/dashboard/appointments",
   "/dashboard/records/page": "/dashboard/records",
+  "/dashboard/page": "/dashboard",
+  "/dashboard/patients/page": "/dashboard/patients",
+  "/dashboard/payments/page": "/dashboard/payments",
+  "/dashboard/treatments/page": "/dashboard/treatments",
   "/dashboard/reports/page": "/dashboard/reports",
   "/dashboard/statistics/page": "/dashboard/statistics",
-  "/dashboard/payments/page": "/dashboard/payments",
-  "/dashboard/users/page": "/dashboard/users",
-  "/dashboard/treatments/page": "/dashboard/treatments"
+  "/dashboard/users/page": "/dashboard/users"
 }

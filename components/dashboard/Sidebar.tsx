@@ -29,6 +29,7 @@ interface NavigationItem {
   name: string
   icon: React.ElementType
   path: string
+  disabled?: boolean
 }
 
 const navigation: NavigationItem[] = [
@@ -37,10 +38,10 @@ const navigation: NavigationItem[] = [
   { name: "Citas", icon: Calendar, path: "/dashboard/appointments" },
   { name: "Expedientes", icon: FolderOpen, path: "/dashboard/records" },
   { name: "Tratamientos", icon: Stethoscope, path: "/dashboard/treatments" },
-  { name: "Pagos y Facturación", icon: CreditCard, path: "/dashboard/payments" },
-  { name: "Usuarios", icon: UserCog, path: "/dashboard/users" },
-  { name: "Reportes", icon: FileText, path: "/dashboard/reports" },
-  { name: "Estadísticas", icon: BarChart, path: "/dashboard/statistics" },
+  { name: "Pagos y Facturación", icon: CreditCard, path: "/dashboard/payments", disabled: true },
+  { name: "Usuarios", icon: UserCog, path: "/dashboard/users", disabled: true },
+  { name: "Reportes", icon: FileText, path: "/dashboard/reports", disabled: true },
+  { name: "Estadísticas", icon: BarChart, path: "/dashboard/statistics", disabled: true },
 ]
 
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
@@ -72,6 +73,8 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
   }
 
   const handleNavigation = (item: NavigationItem) => {
+    if (item.disabled) return
+
     router.push(item.path)
     if (window.innerWidth < 768) {
       setOpen(false)
@@ -119,23 +122,28 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item)}
+                disabled={item.disabled}
                 className={`group flex items-center justify-between w-full px-3 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                  activeModule === item.name
-                    ? "bg-red-400 text-gray-900"
-                    : "text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-amber-400"
+                  item.disabled
+                    ? "text-gray-400 cursor-not-allowed opacity-50"
+                    : activeModule === item.name
+                      ? "bg-red-400 text-gray-900"
+                      : "text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-amber-400"
                 }`}
               >
                 <div className="flex items-center">
                   <item.icon
                     className={`mr-3 h-5 w-5 ${
-                      activeModule === item.name
-                        ? "text-gray-900"
-                        : "text-[hsl(var(--sidebar-foreground))] group-hover:text-amber-400"
+                      item.disabled
+                        ? "text-gray-400"
+                        : activeModule === item.name
+                          ? "text-gray-900"
+                          : "text-[hsl(var(--sidebar-foreground))] group-hover:text-amber-400"
                     }`}
                   />
                   {item.name}
                 </div>
-                {activeModule === item.name && <ChevronRight className="h-4 w-4 text-gray-900" />}
+                {activeModule === item.name && !item.disabled && <ChevronRight className="h-4 w-4 text-gray-900" />}
               </button>
             ))}
           </nav>

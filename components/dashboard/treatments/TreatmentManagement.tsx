@@ -1,83 +1,15 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Plus, Edit, Trash2, Eye, Search, Activity } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Plus, Edit, Trash2, Eye, Search, Activity, User, Stethoscope } from "lucide-react"
 import TreatmentForm from "./TreatmentForm"
 import Pagination from "../common/Pagination"
 import ConfirmModal from "@/components/common/ConfirmModal"
+import { useAuth } from "@/context/AuthContext"
+import type { Treatment, Patient, Dentist, CreateTreatmentRequest, UpdateTreatmentRequest } from "@/lib/api"
+import { createTreatmentsApi } from "@/lib/api"
 
-// Sample treatment data
-const initialTreatments = [
-  {
-    id: 1,
-    patientName: "María García",
-    patientId: 1,
-    treatmentType: "Ortodoncia",
-    startDate: "2025-03-10T09:00:00",
-    endDate: "2026-03-10T09:00:00",
-    status: "En progreso",
-    cost: 2500,
-    sessions: 24,
-    completedSessions: 3,
-    notes: "Brackets metálicos tradicionales",
-  },
-  {
-    id: 2,
-    patientName: "Juan Pérez",
-    patientId: 2,
-    treatmentType: "Blanqueamiento",
-    startDate: "2025-04-15T14:30:00",
-    endDate: "2025-05-15T14:30:00",
-    status: "En progreso",
-    cost: 350,
-    sessions: 4,
-    completedSessions: 1,
-    notes: "Tratamiento de blanqueamiento profesional",
-  },
-  {
-    id: 3,
-    patientName: "Ana Rodríguez",
-    patientId: 3,
-    treatmentType: "Extracción",
-    startDate: "2025-04-22T10:00:00",
-    endDate: "2025-04-22T10:00:00",
-    status: "Completado",
-    cost: 120,
-    sessions: 1,
-    completedSessions: 1,
-    notes: "Extracción de muela del juicio",
-  },
-  {
-    id: 4,
-    patientName: "Carlos Martínez",
-    patientId: 4,
-    treatmentType: "Limpieza Dental",
-    startDate: "2025-04-18T11:30:00",
-    endDate: "2025-04-18T11:30:00",
-    status: "Completado",
-    cost: 80,
-    sessions: 1,
-    completedSessions: 1,
-    notes: "Limpieza dental profunda",
-  },
-  {
-    id: 5,
-    patientName: "Laura Sánchez",
-    patientId: 5,
-    treatmentType: "Relleno",
-    startDate: "2025-04-25T15:00:00",
-    endDate: "2025-04-25T15:00:00",
-    status: "Programado",
-    cost: 150,
-    sessions: 1,
-    completedSessions: 0,
-    notes: "Relleno de composite en molar superior",
-  },
-]
-
-// Primero, agregar una función para normalizar texto (eliminar acentos)
-// Añadir esta función antes del componente TreatmentManagement
-
+// Función para normalizar texto (eliminar acentos)
 function normalizeText(text: string): string {
   return text
     .normalize("NFD")
@@ -86,11 +18,16 @@ function normalizeText(text: string): string {
 }
 
 const TreatmentManagement = () => {
-  const [treatments, setTreatments] = useState(initialTreatments)
+  const { token } = useAuth()
+  const [treatments, setTreatments] = useState<Treatment[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [dentists, setDentists] = useState<Dentist[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [currentTreatment, setCurrentTreatment] = useState<any>(null)
+  const [currentTreatment, setCurrentTreatment] = useState<Treatment | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<"list" | "view" | "edit">("list")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Estados para la paginación
   const [currentPage, setCurrentPage] = useState(1)
@@ -98,8 +35,58 @@ const TreatmentManagement = () => {
 
   // Estados para el modal de confirmación
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [treatmentToDelete, setTreatmentToDelete] = useState<any>(null)
+  const [treatmentToDelete, setTreatmentToDelete] = useState<Treatment | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  const treatmentsApi = createTreatmentsApi(token || "")
+
+  useEffect(() => {
+    if (token) {
+      loadInitialData()
+    }
+  }, [token])
+
+  const loadInitialData = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const [treatmentsResponse, patientsResponse, dentistsResponse] = await Promise.all([
+        treatmentsApi.getTreatments(1, 100), // Cargar todos los tratamientos
+        treatmentsApi.getAllPatients(),
+        treatmentsApi.getAllDentists(),
+      ])
+
+      // Validar y establecer tratamientos
+      if (treatmentsResponse && Array.isArray(treatmentsResponse.data)) {
+        setTreatments(treatmentsResponse.data)
+      } else {
+        setTreatments([])
+      }
+
+      // Validar y establecer pacientes
+      if (patientsResponse && Array.isArray(patientsResponse.data)) {
+        setPatients(patientsResponse.data)
+      } else {
+        setPatients([])
+      }
+
+      // Validar y establecer odontólogos
+      if (dentistsResponse && Array.isArray(dentistsResponse.data)) {
+        setDentists(dentistsResponse.data)
+      } else {
+        setDentists([])
+      }
+    } catch (err) {
+      console.error("Error loading initial data:", err)
+      setError(err instanceof Error ? err.message : "Error al cargar los datos")
+      setTreatments([])
+      setPatients([])
+      setDentists([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleAddNew = () => {
     setCurrentTreatment(null)
@@ -107,33 +94,36 @@ const TreatmentManagement = () => {
     setViewMode("edit")
   }
 
-  const handleEdit = (treatment: any) => {
+  const handleEdit = (treatment: Treatment) => {
     setCurrentTreatment(treatment)
     setIsFormOpen(true)
     setViewMode("edit")
   }
 
-  const handleView = (treatment: any) => {
+  const handleView = (treatment: Treatment) => {
     setCurrentTreatment(treatment)
     setViewMode("view")
   }
 
-  const handleDeleteClick = (treatment: any) => {
+  const handleDeleteClick = (treatment: Treatment) => {
     setTreatmentToDelete(treatment)
     setShowDeleteModal(true)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!treatmentToDelete) return
 
     setIsDeleting(true)
-    // Simular delay de API
-    setTimeout(() => {
-      setTreatments(treatments.filter((treatment) => treatment.id !== treatmentToDelete.id))
+    try {
+      await treatmentsApi.deleteTreatment(treatmentToDelete._id)
+      setTreatments(treatments.filter((treatment) => treatment._id !== treatmentToDelete._id))
       setShowDeleteModal(false)
       setTreatmentToDelete(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar el tratamiento")
+    } finally {
       setIsDeleting(false)
-    }, 1000)
+    }
   }
 
   const handleDeleteCancel = () => {
@@ -143,24 +133,28 @@ const TreatmentManagement = () => {
     }
   }
 
-  const handleSave = (treatmentData: any) => {
-    if (currentTreatment) {
-      // Update existing treatment
-      setTreatments(
-        treatments.map((treatment) =>
-          treatment.id === currentTreatment.id ? { ...treatment, ...treatmentData } : treatment,
-        ),
-      )
-    } else {
-      // Add new treatment
-      const newTreatment = {
-        id: treatments.length > 0 ? Math.max(...treatments.map((t) => t.id)) + 1 : 1,
-        ...treatmentData,
+  const handleSave = async (treatmentData: CreateTreatmentRequest | UpdateTreatmentRequest) => {
+    try {
+      if (currentTreatment) {
+        // Update existing treatment
+        const updatedTreatment = await treatmentsApi.updateTreatment(
+          currentTreatment._id,
+          treatmentData as UpdateTreatmentRequest,
+        )
+        // Recargar los datos para obtener la información completa
+        await loadInitialData()
+      } else {
+        // Add new treatment
+        await treatmentsApi.createTreatment(treatmentData as CreateTreatmentRequest)
+        // Recargar los datos para obtener la información completa
+        await loadInitialData()
       }
-      setTreatments([...treatments, newTreatment])
+      setIsFormOpen(false)
+      setViewMode("list")
+    } catch (err) {
+      // Re-lanzar el error para que el formulario lo pueda capturar
+      throw err
     }
-    setIsFormOpen(false)
-    setViewMode("list")
   }
 
   const handleCancel = () => {
@@ -168,24 +162,27 @@ const TreatmentManagement = () => {
     setViewMode("list")
   }
 
-  // Luego, modificar la función de filtrado de tratamientos para usar la normalización
-  // Reemplazar la función filteredTreatments con:
-
   const filteredTreatments = useMemo(() => {
+    if (!Array.isArray(treatments)) return []
+
     const normalizedSearchTerm = normalizeText(searchTerm)
 
     return treatments.filter(
       (treatment) =>
-        normalizeText(treatment.patientName).includes(normalizedSearchTerm) ||
-        normalizeText(treatment.treatmentType).includes(normalizedSearchTerm) ||
-        normalizeText(treatment.status).includes(normalizedSearchTerm),
+        normalizeText(`${treatment.paciente.nombre} ${treatment.paciente.apellido}`).includes(normalizedSearchTerm) ||
+        normalizeText(`${treatment.odontologo.nombre} ${treatment.odontologo.apellido}`).includes(
+          normalizedSearchTerm,
+        ) ||
+        normalizeText(treatment.tipo).includes(normalizedSearchTerm) ||
+        normalizeText(treatment.descripcion).includes(normalizedSearchTerm) ||
+        normalizeText(treatment.estado).includes(normalizedSearchTerm),
     )
   }, [treatments, searchTerm])
 
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleString("es-ES", {
+    return date.toLocaleDateString("es-ES", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -197,8 +194,37 @@ const TreatmentManagement = () => {
     return total > 0 ? Math.round((completed / total) * 100) : 0
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Gestión de Tratamientos</h1>
+        </div>
+        <div className="bg-[hsl(var(--card))] shadow-md rounded-lg p-8 text-center transition-colors duration-200">
+          <p className="text-[hsl(var(--muted-foreground))]">Cargando tratamientos...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Gestión de Tratamientos</h1>
+        </div>
+        <div className="bg-[hsl(var(--card))] shadow-md rounded-lg p-8 text-center transition-colors duration-200">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button onClick={loadInitialData} className="px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (viewMode === "view" && currentTreatment) {
-    const progressPercentage = calculateProgress(currentTreatment.completedSessions, currentTreatment.sessions)
+    const progressPercentage = calculateProgress(currentTreatment.sesionesCompletadas, currentTreatment.numeroSesiones)
 
     return (
       <div className="space-y-6">
@@ -206,77 +232,128 @@ const TreatmentManagement = () => {
           <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Detalles del Tratamiento</h1>
           <button
             onClick={() => setViewMode("list")}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            className="px-4 py-2 bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] rounded-md hover:bg-[hsl(var(--secondary))]/80 transition-colors duration-200"
           >
             Volver
           </button>
         </div>
 
         <div className="bg-[hsl(var(--card))] shadow-md rounded-lg p-6 transition-colors duration-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h2 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">Información del Tratamiento</h2>
-              <p>
-                <span className="font-semibold">Paciente:</span> {currentTreatment.patientName}
-              </p>
-              <p>
-                <span className="font-semibold">Tipo de Tratamiento:</span> {currentTreatment.treatmentType}
-              </p>
-              <p>
-                <span className="font-semibold">Fecha de Inicio:</span> {formatDate(currentTreatment.startDate)}
-              </p>
-              <p>
-                <span className="font-semibold">Fecha de Finalización:</span> {formatDate(currentTreatment.endDate)}
-              </p>
-              <p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Información del Paciente */}
+            <div className="space-y-4">
+              <div className="flex items-center mb-3">
+                <User className="h-5 w-5 text-red-400 mr-2" />
+                <h2 className="text-lg font-medium text-[hsl(var(--foreground))]">Información del Paciente</h2>
+              </div>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="font-semibold">Nombre:</span> {currentTreatment.paciente.nombre}{" "}
+                  {currentTreatment.paciente.apellido}
+                </p>
+                <p>
+                  <span className="font-semibold">Correo:</span> {currentTreatment.paciente.correo}
+                </p>
+                <p>
+                  <span className="font-semibold">Teléfono:</span> {currentTreatment.paciente.telefono}
+                </p>
+                <p>
+                  <span className="font-semibold">Dirección:</span> {currentTreatment.paciente.direccion}
+                </p>
+              </div>
+            </div>
+
+            {/* Información del Odontólogo */}
+            <div className="space-y-4">
+              <div className="flex items-center mb-3">
+                <Stethoscope className="h-5 w-5 text-red-400 mr-2" />
+                <h2 className="text-lg font-medium text-[hsl(var(--foreground))]">Información del Odontólogo</h2>
+              </div>
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="font-semibold">Nombre:</span> Dr. {currentTreatment.odontologo.nombre}{" "}
+                  {currentTreatment.odontologo.apellido}
+                </p>
+                <p>
+                  <span className="font-semibold">Especialidad:</span> {currentTreatment.odontologo.especialidad}
+                </p>
+                <p>
+                  <span className="font-semibold">Correo:</span> {currentTreatment.odontologo.correo}
+                </p>
+                <p>
+                  <span className="font-semibold">Teléfono:</span> {currentTreatment.odontologo.telefono}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-[hsl(var(--border))] mt-6 pt-6">
+            <div className="flex items-center mb-4">
+              <Activity className="h-5 w-5 text-red-400 mr-2" />
+              <h2 className="text-lg font-medium text-[hsl(var(--foreground))]">Detalles del Tratamiento</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="font-semibold">Tipo:</span> {currentTreatment.tipo}
+              </div>
+              <div>
                 <span className="font-semibold">Estado:</span>{" "}
                 <span
                   className={`px-2 py-1 rounded-full text-xs ${
-                    currentTreatment.status === "Completado"
+                    currentTreatment.estado === "completado"
                       ? "bg-green-100 text-green-800"
-                      : currentTreatment.status === "En progreso"
+                      : currentTreatment.estado === "en progreso"
                         ? "bg-blue-100 text-blue-800"
-                        : "bg-yellow-100 text-yellow-800"
+                        : currentTreatment.estado === "pendiente"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {currentTreatment.status}
+                  {currentTreatment.estado.charAt(0).toUpperCase() + currentTreatment.estado.slice(1)}
                 </span>
-              </p>
+              </div>
+              <div>
+                <span className="font-semibold">Costo:</span> ${currentTreatment.costo}
+              </div>
+              <div>
+                <span className="font-semibold">Fecha de Inicio:</span> {formatDate(currentTreatment.fechaInicio)}
+              </div>
+              {currentTreatment.fechaFin && (
+                <div>
+                  <span className="font-semibold">Fecha de Fin:</span> {formatDate(currentTreatment.fechaFin)}
+                </div>
+              )}
+              <div>
+                <span className="font-semibold">Sesiones:</span> {currentTreatment.sesionesCompletadas} de{" "}
+                {currentTreatment.numeroSesiones}
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">Detalles Adicionales</h2>
-              <p>
-                <span className="font-semibold">Costo:</span> ${currentTreatment.cost}
-              </p>
-              <p>
-                <span className="font-semibold">Sesiones:</span> {currentTreatment.completedSessions} de{" "}
-                {currentTreatment.sessions}
-              </p>
-              <p>
-                <span className="font-semibold">Progreso:</span>
-              </p>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-1 mb-4 transition-colors duration-200">
+
+            <div className="mt-4">
+              <span className="font-semibold">Progreso:</span>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2 mb-2 transition-colors duration-200">
                 <div className="bg-red-400 h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
               </div>
-              <p>
-                <span className="font-semibold">Notas:</span>{" "}
-                <span className={!currentTreatment.notes ? "text-[hsl(var(--muted-foreground))] italic" : ""}>
-                  {currentTreatment.notes || "No hay notas disponibles."}
-                </span>
-              </p>
+              <span className="text-xs text-[hsl(var(--muted-foreground))]">{progressPercentage}% completado</span>
+            </div>
+
+            <div className="mt-4">
+              <span className="font-semibold">Descripción:</span>
+              <p className="mt-1 text-[hsl(var(--muted-foreground))]">{currentTreatment.descripcion}</p>
             </div>
           </div>
 
           <div className="mt-6 flex space-x-4">
             <button
               onClick={() => handleEdit(currentTreatment)}
-              className="px-4 py-2 bg-amber-400 text-white rounded-md hover:bg-amber-500"
+              className="px-4 py-2 bg-amber-400 text-white rounded-md hover:bg-amber-500 transition-colors duration-200"
             >
               Editar
             </button>
             <button
               onClick={() => handleDeleteClick(currentTreatment)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200"
             >
               Eliminar
             </button>
@@ -289,7 +366,7 @@ const TreatmentManagement = () => {
           onClose={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}
           title="Eliminar Tratamiento"
-          message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.treatmentType} para ${treatmentToDelete?.patientName}? Esta acción no se puede deshacer.`}
+          message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.tipo} para ${treatmentToDelete?.paciente.nombre} ${treatmentToDelete?.paciente.apellido}? Esta acción no se puede deshacer.`}
           confirmText="Eliminar"
           cancelText="Cancelar"
           type="danger"
@@ -300,13 +377,23 @@ const TreatmentManagement = () => {
   }
 
   if (viewMode === "edit") {
-    return <TreatmentForm treatment={currentTreatment} onSave={handleSave} onCancel={handleCancel} />
+    return (
+      <TreatmentForm
+        treatment={currentTreatment}
+        patients={patients}
+        dentists={dentists}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
+    )
   }
 
   // Lógica de paginación
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = filteredTreatments.slice(indexOfFirstItem, indexOfLastItem)
+  const currentItems = Array.isArray(filteredTreatments)
+    ? filteredTreatments.slice(indexOfFirstItem, indexOfLastItem)
+    : []
   const totalPages = Math.ceil(filteredTreatments.length / itemsPerPage)
 
   // Función para cambiar de página
@@ -320,7 +407,7 @@ const TreatmentManagement = () => {
         <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Gestión de Tratamientos</h1>
         <button
           onClick={handleAddNew}
-          className="flex items-center px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500"
+          className="flex items-center px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500 transition-colors duration-200"
         >
           <Plus className="h-5 w-5 mr-1" />
           Nuevo Tratamiento
@@ -351,10 +438,10 @@ const TreatmentManagement = () => {
                   Paciente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                  Tratamiento
+                  Odontólogo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                  Inicio
+                  Tratamiento
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
                   Estado
@@ -368,75 +455,102 @@ const TreatmentManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-[hsl(var(--card))] divide-y divide-[hsl(var(--border))] transition-colors duration-200">
-              {currentItems.map((treatment) => {
-                const progressPercentage = calculateProgress(treatment.completedSessions, treatment.sessions)
+              {Array.isArray(currentItems) &&
+                currentItems.map((treatment) => {
+                  const progressPercentage = calculateProgress(treatment.sesionesCompletadas, treatment.numeroSesiones)
 
-                return (
-                  <tr key={treatment.id} className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-[hsl(var(--foreground))]">{treatment.patientName}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Activity className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
-                        <span className="text-sm text-[hsl(var(--muted-foreground))]">{treatment.treatmentType}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                        {formatDate(treatment.startDate)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          treatment.status === "Completado"
-                            ? "bg-green-100 text-green-800"
-                            : treatment.status === "En progreso"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {treatment.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-2 transition-colors duration-200">
-                          <div
-                            className="bg-red-400 h-2.5 rounded-full"
-                            style={{ width: `${progressPercentage}%` }}
-                          ></div>
+                  return (
+                    <tr
+                      key={treatment._id}
+                      className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
+                          <div>
+                            <div className="text-sm font-medium text-[hsl(var(--foreground))]">
+                              {treatment.paciente.nombre} {treatment.paciente.apellido}
+                            </div>
+                            <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                              {treatment.paciente.correo}
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-xs text-[hsl(var(--muted-foreground))]">{progressPercentage}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleView(treatment)}
-                        className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3 transition-colors duration-200"
-                        title="Ver detalles"
-                      >
-                        <Eye className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(treatment)}
-                        className="text-amber-500 hover:text-amber-600 mr-3"
-                        title="Editar"
-                      >
-                        <Edit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(treatment)}
-                        className="text-red-500 hover:text-red-600"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Stethoscope className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
+                          <div>
+                            <div className="text-sm font-medium text-[hsl(var(--foreground))]">
+                              Dr. {treatment.odontologo.nombre} {treatment.odontologo.apellido}
+                            </div>
+                            <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                              {treatment.odontologo.especialidad}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Activity className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
+                          <div>
+                            <div className="text-sm font-medium text-[hsl(var(--foreground))]">{treatment.tipo}</div>
+                            <div className="text-sm text-[hsl(var(--muted-foreground))]">${treatment.costo}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            treatment.estado === "completado"
+                              ? "bg-green-100 text-green-800"
+                              : treatment.estado === "en progreso"
+                                ? "bg-blue-100 text-blue-800"
+                                : treatment.estado === "pendiente"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {treatment.estado.charAt(0).toUpperCase() + treatment.estado.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-2 transition-colors duration-200">
+                            <div
+                              className="bg-red-400 h-2.5 rounded-full"
+                              style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs text-[hsl(var(--muted-foreground))]">{progressPercentage}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleView(treatment)}
+                          className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3 transition-colors duration-200"
+                          title="Ver detalles"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(treatment)}
+                          className="text-amber-500 hover:text-amber-600 mr-3"
+                          title="Editar"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(treatment)}
+                          className="text-red-500 hover:text-red-600"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
             </tbody>
           </table>
         </div>
@@ -457,7 +571,7 @@ const TreatmentManagement = () => {
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         title="Eliminar Tratamiento"
-        message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.treatmentType} para ${treatmentToDelete?.patientName}? Esta acción no se puede deshacer.`}
+        message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.tipo} para ${treatmentToDelete?.paciente.nombre} ${treatmentToDelete?.paciente.apellido}? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"

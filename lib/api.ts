@@ -212,7 +212,15 @@ export interface VerifyResponse {
 
 export interface Treatment {
   _id: string
-  paciente: string
+  paciente: {
+    _id: string
+    nombre: string
+    apellido: string
+    correo: string
+    telefono: string
+    direccion: string
+    fecha_nacimiento: string
+  }
   odontologo: {
     _id: string
     nombre: string
@@ -227,9 +235,45 @@ export interface Treatment {
   costo: number
   numeroSesiones: number
   sesionesCompletadas: number
-  estado: "pendiente" | "en_progreso" | "completado" | "cancelado"
+  estado: "pendiente" | "en progreso" | "completado" | "cancelado"
   fechaInicio: string
   fechaFin?: string
+  __v?: number
+}
+
+// Agregar interfaces para requests de tratamientos después de las interfaces existentes
+
+export interface CreateTreatmentRequest {
+  paciente: string
+  odontologo: string
+  descripcion: string
+  tipo: string
+  costo: number
+  numeroSesiones: number
+  sesionesCompletadas: number
+  estado: "pendiente" | "en progreso" | "completado" | "cancelado"
+  fechaFin?: string
+}
+
+export interface UpdateTreatmentRequest {
+  descripcion?: string
+  tipo?: string
+  costo?: number
+  numeroSesiones?: number
+  sesionesCompletadas?: number
+  fechaInicio?: string
+  fechaFin?: string
+  estado?: "pendiente" | "en progreso" | "completado" | "cancelado"
+}
+
+export interface TreatmentsResponse {
+  data: Treatment[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export interface MedicalRecord {
@@ -678,6 +722,136 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
         resolve({
           message: "Expediente eliminado con éxito",
         } as T)
+      } else if (endpoint === "/api/tratamientos") {
+        if (method === "POST") {
+          const requestData = JSON.parse(body || "{}")
+          resolve({
+            paciente: requestData.paciente,
+            odontologo: requestData.odontologo,
+            descripcion: requestData.descripcion,
+            tipo: requestData.tipo,
+            costo: requestData.costo,
+            numeroSesiones: requestData.numeroSesiones,
+            sesionesCompletadas: requestData.sesionesCompletadas,
+            fechaFin: requestData.fechaFin,
+            estado: requestData.estado,
+            _id: "new-treatment-id",
+            fechaInicio: new Date().toISOString(),
+            __v: 0,
+          } as T)
+        } else {
+          resolve({
+            data: [
+              {
+                _id: "treatment1",
+                paciente: {
+                  _id: "682fe194e35012e49e5f8eca",
+                  nombre: "Jose",
+                  apellido: "Carlos",
+                  correo: "jose.carlos@example.com",
+                  telefono: "123456789",
+                  direccion: "Calle Falsa 123",
+                  fecha_nacimiento: "1990-05-15T00:00:00.000Z",
+                },
+                odontologo: {
+                  _id: "68100d6af4e6f334f7024f30",
+                  nombre: "José",
+                  apellido: "López",
+                  correo: "jose@example.com",
+                  telefono: "87651234",
+                  especialidad: "Ortodoncia",
+                  fecha_nacimiento: "1998-06-15T00:00:00.000Z",
+                },
+                descripcion: "Tratamiento de ortodoncia invisible.",
+                tipo: "Ortodoncia",
+                costo: 3500,
+                numeroSesiones: 24,
+                sesionesCompletadas: 24,
+                estado: "completado",
+                fechaInicio: "2025-01-15T00:00:00.000Z",
+                fechaFin: "2025-01-30T00:00:00.000Z",
+              },
+              {
+                _id: "treatment2",
+                paciente: {
+                  _id: "67f4a50ec5e2bcae913f7871",
+                  nombre: "Javier",
+                  apellido: "Martinez",
+                  correo: "paciente@ejemplo.com",
+                  telefono: "1234567890",
+                  direccion: "Calle Falsa 123",
+                  fecha_nacimiento: "1990-01-01T00:00:00.000Z",
+                },
+                odontologo: {
+                  _id: "68100d6af4e6f334f7024f30",
+                  nombre: "José",
+                  apellido: "López",
+                  correo: "jose@example.com",
+                  telefono: "87651234",
+                  especialidad: "Ortodoncia",
+                  fecha_nacimiento: "1998-06-15T00:00:00.000Z",
+                },
+                descripcion: "Limpieza dental y revisión general.",
+                tipo: "Limpieza",
+                costo: 150,
+                numeroSesiones: 1,
+                sesionesCompletadas: 0,
+                estado: "en progreso",
+                fechaInicio: "2025-01-20T00:00:00.000Z",
+                fechaFin: "2025-01-25T00:00:00.000Z",
+              },
+            ],
+            pagination: {
+              total: 2,
+              page: 1,
+              limit: 10,
+              totalPages: 1,
+            },
+          } as T)
+        }
+      } else if (endpoint.includes("/api/tratamientos/") && method === "GET") {
+        resolve({
+          _id: endpoint.split("/").pop(),
+          paciente: {
+            _id: "682fe194e35012e49e5f8eca",
+            nombre: "Jose",
+            apellido: "Carlos",
+            correo: "jose.carlos@example.com",
+            telefono: "123456789",
+            direccion: "Calle Falsa 123",
+            fecha_nacimiento: "1990-05-15T00:00:00.000Z",
+          },
+          odontologo: {
+            _id: "68100d6af4e6f334f7024f30",
+            nombre: "José",
+            apellido: "López",
+            correo: "jose@example.com",
+            telefono: "87651234",
+            especialidad: "Ortodoncia",
+            fecha_nacimiento: "1998-06-15T00:00:00.000Z",
+          },
+          descripcion: "Tratamiento de ortodoncia invisible.",
+          tipo: "Ortodoncia",
+          costo: 3500,
+          numeroSesiones: 24,
+          sesionesCompletadas: 24,
+          estado: "completado",
+          fechaInicio: "2025-01-15T00:00:00.000Z",
+          fechaFin: "2025-01-30T00:00:00.000Z",
+        } as T)
+      } else if (endpoint.includes("/api/tratamientos/") && method === "PUT") {
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          _id: endpoint.split("/").pop(),
+          paciente: "682fe194e35012e49e5f8eca",
+          odontologo: "68100d6af4e6f334f7024f30",
+          ...requestData,
+          __v: 0,
+        } as T)
+      } else if (endpoint.includes("/api/tratamientos/") && method === "DELETE") {
+        resolve({
+          message: "Tratamiento eliminado con éxito",
+        } as T)
       }
 
       // Respuesta por defecto
@@ -997,5 +1171,160 @@ export const createMedicalRecordsApi = (token: string) => ({
     }
 
     return { data: initialResponse.data }
+  },
+})
+
+// API de tratamientos
+export const createTreatmentsApi = (token: string) => ({
+  getTreatments: async (page = 1, limit = 10): Promise<TreatmentsResponse> => {
+    try {
+      const response = await apiRequest<TreatmentsResponse>(
+        `/api/tratamientos?page=${page}&limit=${limit}`,
+        {
+          method: "GET",
+        },
+        token,
+      )
+
+      // Validar que la respuesta tenga la estructura esperada
+      if (!response || !Array.isArray(response.data)) {
+        return {
+          data: [],
+          pagination: {
+            total: 0,
+            page: 1,
+            limit: limit,
+            totalPages: 0,
+          },
+        }
+      }
+
+      return response
+    } catch (error) {
+      console.error("Error loading treatments:", error)
+      return {
+        data: [],
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: limit,
+          totalPages: 0,
+        },
+      }
+    }
+  },
+
+  getTreatmentById: (id: string): Promise<Treatment> => {
+    return apiRequest<Treatment>(
+      `/api/tratamientos/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  createTreatment: (treatmentData: CreateTreatmentRequest): Promise<Treatment> => {
+    return apiRequest<Treatment>(
+      "/api/tratamientos",
+      {
+        method: "POST",
+        body: JSON.stringify(treatmentData),
+      },
+      token,
+    )
+  },
+
+  updateTreatment: (id: string, treatmentData: UpdateTreatmentRequest): Promise<Treatment> => {
+    return apiRequest<Treatment>(
+      `/api/tratamientos/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(treatmentData),
+      },
+      token,
+    )
+  },
+
+  deleteTreatment: (id: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(
+      `/api/tratamientos/${id}`,
+      {
+        method: "DELETE",
+      },
+      token,
+    )
+  },
+
+  getAllPatients: async (): Promise<{ data: Patient[] }> => {
+    try {
+      // Primero obtener el total
+      const initialResponse = await apiRequest<PatientsResponse>(
+        "/pacientes?page=1&limit=1",
+        {
+          method: "GET",
+        },
+        token,
+      )
+
+      // Validar que la respuesta tenga la estructura esperada
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        return { data: Array.isArray(initialResponse?.data) ? initialResponse.data : [] }
+      }
+
+      // Usar el total como límite para obtener todos los pacientes
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allPatientsResponse = await apiRequest<PatientsResponse>(
+          `/pacientes?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return { data: Array.isArray(allPatientsResponse?.data) ? allPatientsResponse.data : [] }
+      }
+
+      return { data: Array.isArray(initialResponse.data) ? initialResponse.data : [] }
+    } catch (error) {
+      console.error("Error loading patients:", error)
+      return { data: [] }
+    }
+  },
+
+  getAllDentists: async (): Promise<{ data: Dentist[] }> => {
+    try {
+      // Primero obtener el total
+      const initialResponse = await apiRequest<DentistsResponse>(
+        "/odontologos?page=1&limit=1",
+        {
+          method: "GET",
+        },
+        token,
+      )
+
+      // Validar que la respuesta tenga la estructura esperada
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        return { data: Array.isArray(initialResponse?.data) ? initialResponse.data : [] }
+      }
+
+      // Usar el total como límite para obtener todos los odontólogos
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allDentistsResponse = await apiRequest<DentistsResponse>(
+          `/odontologos?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return { data: Array.isArray(allDentistsResponse?.data) ? allDentistsResponse.data : [] }
+      }
+
+      return { data: Array.isArray(initialResponse.data) ? initialResponse.data : [] }
+    } catch (error) {
+      console.error("Error loading dentists:", error)
+      return { data: [] }
+    }
   },
 })
