@@ -77,12 +77,33 @@ const AppointmentManagement = () => {
         patientsApi.getPatients(1, 1000), // Cargar todos los pacientes para el formulario
       ])
 
-      setAppointments(appointmentsResponse.data)
-      setTotalPages(appointmentsResponse.pagination.totalPages)
-      setDentists(dentistsResponse.data)
-      setPatients(patientsResponse.data)
+      // Validar que las respuestas tengan la estructura esperada
+      if (appointmentsResponse?.data && Array.isArray(appointmentsResponse.data)) {
+        setAppointments(appointmentsResponse.data)
+        setTotalPages(appointmentsResponse.pagination?.totalPages || 1)
+      } else {
+        setAppointments([])
+        setTotalPages(1)
+      }
+
+      if (dentistsResponse?.data && Array.isArray(dentistsResponse.data)) {
+        setDentists(dentistsResponse.data)
+      } else {
+        setDentists([])
+      }
+
+      if (patientsResponse?.data && Array.isArray(patientsResponse.data)) {
+        setPatients(patientsResponse.data)
+      } else {
+        setPatients([])
+      }
     } catch (error) {
       console.error("Error loading data:", error)
+      // Establecer arrays vacíos en caso de error
+      setAppointments([])
+      setDentists([])
+      setPatients([])
+      setTotalPages(1)
     } finally {
       setIsLoading(false)
     }
@@ -100,10 +121,18 @@ const AppointmentManagement = () => {
 
     try {
       const response = await appointmentsApi.getAppointments(page, ITEMS_PER_PAGE)
-      setAppointments(response.data)
-      setTotalPages(response.pagination.totalPages)
+
+      if (response?.data && Array.isArray(response.data)) {
+        setAppointments(response.data)
+        setTotalPages(response.pagination?.totalPages || 1)
+      } else {
+        setAppointments([])
+        setTotalPages(1)
+      }
     } catch (error) {
       console.error("Error loading appointments:", error)
+      setAppointments([])
+      setTotalPages(1)
     }
   }
 
@@ -255,6 +284,11 @@ const AppointmentManagement = () => {
 
   // Filter appointments based on search term and filters
   const filteredAppointments = useMemo(() => {
+    // Asegurar que appointments sea un array antes de filtrar
+    if (!Array.isArray(appointments)) {
+      return []
+    }
+
     const normalizedSearchTerm = normalizeText(searchTerm)
 
     return appointments.filter((appointment) => {
@@ -592,76 +626,79 @@ const AppointmentManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-[hsl(var(--card))] divide-y divide-[hsl(var(--border))] transition-colors duration-200">
-              {filteredAppointments
-                .map((appointment) => {
-                  // Validar que la cita tenga datos mínimos requeridos
-                  if (!appointment || !appointment._id) return null
+              {Array.isArray(filteredAppointments) &&
+                filteredAppointments
+                  .map((appointment) => {
+                    // Validar que la cita tenga datos mínimos requeridos
+                    if (!appointment || !appointment._id) return null
 
-                  return (
-                    <tr
-                      key={appointment._id}
-                      className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-[hsl(var(--foreground))]">
-                          {getPatientName(appointment)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                          {appointment.fecha ? formatDate(appointment.fecha) : "Fecha no disponible"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                          {appointment.hora || "Hora no disponible"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-[hsl(var(--muted-foreground))]">{getDentistName(appointment)}</div>
-                        <div className="text-xs text-[hsl(var(--muted-foreground))]">
-                          {appointment.odontologoId?.especialidad || "Especialidad no disponible"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                          {appointment.motivo || "Sin motivo especificado"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(appointment.estado || "pendiente")}`}
-                        >
-                          {translateStatus(appointment.estado || "pendiente")}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleView(appointment)}
-                          className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3 transition-colors duration-200"
-                          title="Ver detalles"
-                        >
-                          <Eye className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(appointment)}
-                          className="text-amber-500 hover:text-amber-600 mr-3 transition-colors duration-200"
-                          title="Editar"
-                        >
-                          <Edit className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(appointment)}
-                          className="text-red-500 hover:text-red-600 transition-colors duration-200"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })
-                .filter(Boolean)}
+                    return (
+                      <tr
+                        key={appointment._id}
+                        className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-[hsl(var(--foreground))]">
+                            {getPatientName(appointment)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                            {appointment.fecha ? formatDate(appointment.fecha) : "Fecha no disponible"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                            {appointment.hora || "Hora no disponible"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                            {getDentistName(appointment)}
+                          </div>
+                          <div className="text-xs text-[hsl(var(--muted-foreground))]">
+                            {appointment.odontologoId?.especialidad || "Especialidad no disponible"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                            {appointment.motivo || "Sin motivo especificado"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(appointment.estado || "pendiente")}`}
+                          >
+                            {translateStatus(appointment.estado || "pendiente")}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleView(appointment)}
+                            className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3 transition-colors duration-200"
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(appointment)}
+                            className="text-amber-500 hover:text-amber-600 mr-3 transition-colors duration-200"
+                            title="Editar"
+                          >
+                            <Edit className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(appointment)}
+                            className="text-red-500 hover:text-red-600 transition-colors duration-200"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                  .filter(Boolean)}
             </tbody>
           </table>
         </div>

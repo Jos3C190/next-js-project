@@ -69,13 +69,22 @@ const PatientManagement = () => {
 
       const response = await patientsApi.getPatients(page, ITEMS_PER_PAGE)
 
-      setPatients(response.data)
-      setTotalPages(response.pagination.totalPages)
-      setTotalPatients(response.pagination.total)
-      setCurrentPage(page)
+      // Validar que la respuesta tenga la estructura esperada
+      if (response && response.data && Array.isArray(response.data)) {
+        setPatients(response.data)
+        setTotalPages(response.pagination?.totalPages || 1)
+        setTotalPatients(response.pagination?.total || 0)
+        setCurrentPage(page)
+      } else {
+        console.error("Respuesta de API inválida:", response)
+        setPatients([])
+        setTotalPages(1)
+        setTotalPatients(0)
+      }
     } catch (error) {
       console.error("Error cargando pacientes:", error)
       setError("Error al cargar los pacientes")
+      setPatients([]) // Añadir esta línea
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -174,6 +183,11 @@ const PatientManagement = () => {
 
   // Filter patients based on search term and filters
   const filteredPatients = useMemo(() => {
+    // Asegurar que patients sea un array
+    if (!Array.isArray(patients)) {
+      return []
+    }
+
     const normalizedSearchTerm = normalizeText(searchTerm)
 
     return patients.filter((patient) => {

@@ -208,6 +208,66 @@ export interface VerifyResponse {
   }
 }
 
+// Agregar interfaces para expedientes después de las interfaces existentes
+
+export interface Treatment {
+  _id: string
+  paciente: string
+  odontologo: {
+    _id: string
+    nombre: string
+    apellido: string
+    correo: string
+    telefono: string
+    especialidad: string
+    fecha_nacimiento: string
+  }
+  descripcion: string
+  tipo: string
+  costo: number
+  numeroSesiones: number
+  sesionesCompletadas: number
+  estado: "pendiente" | "en_progreso" | "completado" | "cancelado"
+  fechaInicio: string
+  fechaFin?: string
+}
+
+export interface MedicalRecord {
+  _id: string
+  paciente: {
+    _id: string
+    nombre: string
+    apellido: string
+    correo: string
+    telefono: string
+    direccion: string
+    fecha_nacimiento: string
+  }
+  observaciones: string
+  tratamientos: Treatment[]
+  fechaCreacion: string
+  __v?: number
+}
+
+export interface CreateMedicalRecordRequest {
+  paciente: string
+  observaciones: string
+}
+
+export interface UpdateMedicalRecordRequest {
+  observaciones: string
+}
+
+export interface MedicalRecordsResponse {
+  data: MedicalRecord[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
 // Función helper para hacer peticiones
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?: string): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
@@ -513,6 +573,111 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
         resolve({
           message: "Paciente eliminado",
         } as T)
+      } else if (endpoint === "/api/expedientes") {
+        if (method === "POST") {
+          const requestData = JSON.parse(body || "{}")
+          resolve({
+            paciente: requestData.paciente,
+            observaciones: requestData.observaciones,
+            tratamientos: [],
+            _id: "new-record-id",
+            fechaCreacion: new Date().toISOString(),
+            __v: 0,
+          } as T)
+        } else {
+          resolve({
+            data: [
+              {
+                _id: "record1",
+                paciente: {
+                  _id: "67f4a50ec5e2bcae913f7871",
+                  nombre: "Javier",
+                  apellido: "Martinez",
+                  correo: "paciente@ejemplo.com",
+                  telefono: "1234567890",
+                  direccion: "Calle Falsa 123",
+                  fecha_nacimiento: "1990-01-01T00:00:00.000Z",
+                },
+                observaciones: "Historial médico inicial del paciente.",
+                tratamientos: [],
+                fechaCreacion: "2025-01-20T10:00:00.000Z",
+              },
+              {
+                _id: "record2",
+                paciente: {
+                  _id: "682fe194e35012e49e5f8eca",
+                  nombre: "Jose",
+                  apellido: "Carlos",
+                  correo: "jose.carlos@example.com",
+                  telefono: "123456789",
+                  direccion: "Calle Falsa 123",
+                  fecha_nacimiento: "1990-05-15T00:00:00.000Z",
+                },
+                observaciones: "Observaciones actualizadas después del tratamiento.",
+                tratamientos: [
+                  {
+                    _id: "treatment1",
+                    paciente: "682fe194e35012e49e5f8eca",
+                    odontologo: {
+                      _id: "d1",
+                      nombre: "José",
+                      apellido: "López",
+                      correo: "jose@example.com",
+                      telefono: "87654321",
+                      especialidad: "Ortodoncia",
+                      fecha_nacimiento: "1998-06-15T00:00:00.000Z",
+                    },
+                    descripcion: "Tratamiento de ortodoncia invisible.",
+                    tipo: "Ortodoncia",
+                    costo: 3500,
+                    numeroSesiones: 24,
+                    sesionesCompletadas: 24,
+                    estado: "completado",
+                    fechaInicio: "2025-01-15T00:00:00.000Z",
+                    fechaFin: "2025-01-30T00:00:00.000Z",
+                  },
+                ],
+                fechaCreacion: "2025-01-10T10:00:00.000Z",
+              },
+            ],
+            pagination: {
+              total: 2,
+              page: 1,
+              limit: 10,
+              totalPages: 1,
+            },
+          } as T)
+        }
+      } else if (endpoint.includes("/api/expedientes/") && method === "GET") {
+        resolve({
+          _id: endpoint.split("/").pop(),
+          paciente: {
+            _id: "682fe194e35012e49e5f8eca",
+            nombre: "Jose",
+            apellido: "Carlos",
+            correo: "jose.carlos@example.com",
+            telefono: "123456789",
+            direccion: "Calle Falsa 123",
+            fecha_nacimiento: "1990-05-15T00:00:00.000Z",
+          },
+          observaciones: "Observaciones del expediente médico.",
+          tratamientos: [],
+          fechaCreacion: "2025-01-10T10:00:00.000Z",
+        } as T)
+      } else if (endpoint.includes("/api/expedientes/") && method === "PUT") {
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          _id: endpoint.split("/").pop(),
+          paciente: "682fe194e35012e49e5f8eca",
+          observaciones: requestData.observaciones,
+          tratamientos: [],
+          fechaCreacion: "2025-01-10T10:00:00.000Z",
+          __v: 0,
+        } as T)
+      } else if (endpoint.includes("/api/expedientes/") && method === "DELETE") {
+        resolve({
+          message: "Expediente eliminado con éxito",
+        } as T)
       }
 
       // Respuesta por defecto
@@ -751,5 +916,86 @@ export const createDentistsApi = (token: string) => ({
       },
       token,
     )
+  },
+})
+
+// API de expedientes médicos
+export const createMedicalRecordsApi = (token: string) => ({
+  getMedicalRecords: (page = 1, limit = 10): Promise<MedicalRecordsResponse> => {
+    return apiRequest<MedicalRecordsResponse>(
+      `/api/expedientes?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  getMedicalRecordById: (id: string): Promise<MedicalRecord> => {
+    return apiRequest<MedicalRecord>(
+      `/api/expedientes/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  createMedicalRecord: (recordData: CreateMedicalRecordRequest): Promise<MedicalRecord> => {
+    return apiRequest<MedicalRecord>(
+      "/api/expedientes",
+      {
+        method: "POST",
+        body: JSON.stringify(recordData),
+      },
+      token,
+    )
+  },
+
+  updateMedicalRecord: (id: string, recordData: UpdateMedicalRecordRequest): Promise<MedicalRecord> => {
+    return apiRequest<MedicalRecord>(
+      `/api/expedientes/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(recordData),
+      },
+      token,
+    )
+  },
+
+  deleteMedicalRecord: (id: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(
+      `/api/expedientes/${id}`,
+      {
+        method: "DELETE",
+      },
+      token,
+    )
+  },
+
+  getAllPatients: async (): Promise<{ data: Patient[] }> => {
+    // Primero obtener el total
+    const initialResponse = await apiRequest<PatientsResponse>(
+      "/pacientes?page=1&limit=1",
+      {
+        method: "GET",
+      },
+      token,
+    )
+
+    // Usar el total como límite para obtener todos los pacientes
+    const total = initialResponse.pagination.total
+    if (total > 1) {
+      const allPatientsResponse = await apiRequest<PatientsResponse>(
+        `/pacientes?limit=${total}`,
+        {
+          method: "GET",
+        },
+        token,
+      )
+      return { data: allPatientsResponse.data }
+    }
+
+    return { data: initialResponse.data }
   },
 })

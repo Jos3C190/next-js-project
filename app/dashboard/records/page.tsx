@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import Layout from "@/components/dashboard/Layout"
-import RecordManagement from "@/components/dashboard/records/RecordManagement"
+import MedicalRecordManagement from "@/components/dashboard/records/MedicalRecordManagement"
 
 export default function RecordsPage() {
   const router = useRouter()
@@ -33,7 +33,7 @@ export default function RecordsPage() {
 
   return (
     <Layout>
-      <RecordManagement />
+      <MedicalRecordManagement />
     </Layout>
   )
 }
