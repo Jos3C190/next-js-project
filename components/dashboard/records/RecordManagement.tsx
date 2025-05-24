@@ -6,6 +6,7 @@ import { useState, useMemo } from "react"
 import { Plus, Edit, Trash2, Eye, Search, FileText } from "lucide-react"
 import RecordForm from "./RecordForm"
 import Pagination from "../common/Pagination"
+import ConfirmModal from "@/components/common/ConfirmModal"
 
 // Sample medical records data
 const initialRecords = [
@@ -149,6 +150,11 @@ const RecordManagement = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
 
+  // Estados para el modal de confirmación
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [recordToDelete, setRecordToDelete] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const handleAddNew = () => {
     setCurrentRecord(null)
     setIsFormOpen(true)
@@ -166,9 +172,28 @@ const RecordManagement = () => {
     setViewMode("view")
   }
 
-  const handleDelete = (id: number) => {
-    if (window.confirm("¿Está seguro que desea eliminar este expediente?")) {
-      setRecords(records.filter((record) => record.id !== id))
+  const handleDeleteClick = (record: any) => {
+    setRecordToDelete(record)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!recordToDelete) return
+
+    setIsDeleting(true)
+    // Simular delay de API
+    setTimeout(() => {
+      setRecords(records.filter((record) => record.id !== recordToDelete.id))
+      setShowDeleteModal(false)
+      setRecordToDelete(null)
+      setIsDeleting(false)
+    }, 1000)
+  }
+
+  const handleDeleteCancel = () => {
+    if (!isDeleting) {
+      setShowDeleteModal(false)
+      setRecordToDelete(null)
     }
   }
 
@@ -283,13 +308,26 @@ const RecordManagement = () => {
               Editar
             </button>
             <button
-              onClick={() => handleDelete(currentRecord.id)}
+              onClick={() => handleDeleteClick(currentRecord)}
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
             >
               Eliminar
             </button>
           </div>
         </div>
+
+        {/* Modal de confirmación para eliminar */}
+        <ConfirmModal
+          isOpen={showDeleteModal}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          title="Eliminar Expediente"
+          message={`¿Está seguro que desea eliminar el expediente de ${recordToDelete?.patientName}? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+          isLoading={isDeleting}
+        />
       </div>
     )
   }
@@ -382,7 +420,7 @@ const RecordManagement = () => {
                       <Edit className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(record.id)}
+                      onClick={() => handleDeleteClick(record)}
                       className="text-red-500 hover:text-red-600"
                       title="Eliminar"
                     >
@@ -405,6 +443,19 @@ const RecordManagement = () => {
           )
         )}
       </div>
+
+      {/* Modal de confirmación para eliminar */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar Expediente"
+        message={`¿Está seguro que desea eliminar el expediente de ${recordToDelete?.patientName}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   )
 }

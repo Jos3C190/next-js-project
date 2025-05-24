@@ -4,7 +4,7 @@
     "files": [
       "static/chunks/766-dffdce1631f1efec.js",
       "static/chunks/725-6ec5eddf16f57f40.js",
-      "static/chunks/32-b5e2e12201700008.js",
+      "static/chunks/32-c46f5957bc1221e6.js",
       "static/chunks/629.5ec5d0ea4179139e.js"
     ]
   },
@@ -39,7 +39,7 @@
     "id": 7424,
     "files": [
       "static/chunks/644.f702be830f458b8f.js",
-      "static/chunks/424.9edecc74ec403b2d.js"
+      "static/chunks/424.8f0a378cf925db25.js"
     ]
   },
   "node_modules\\next\\dist\\client\\index.js -> ../pages/_app": {

@@ -1,155 +1,16 @@
 "use client"
 
 import type React from "react"
-import { useState, useMemo } from "react"
-import { Plus, Edit, Trash2, Eye, Search, Filter, ChevronLeft } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Plus, Edit, Trash2, Eye, Search, Filter, ChevronLeft, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import PatientForm from "./PatientForm"
 import Pagination from "../common/Pagination"
+import ConfirmModal from "@/components/common/ConfirmModal"
+import { useAuth } from "@/context/AuthContext"
+import { createPatientsApi, type Patient } from "@/lib/api"
 
-// Actualizado para coincidir con el esquema real de pacientes
-interface Patient {
-  id: string // Simulando ObjectId
-  nombre: string
-  apellido: string
-  correo: string
-  telefono: string
-  direccion: string
-  fecha_nacimiento: string // Formato ISO para fechas
-  historia_clinica?: string // Opcional
-  role: string
-}
-
-// Sample patient data actualizado según el esquema
-const initialPatients: Patient[] = [
-  {
-    id: "1",
-    nombre: "María",
-    apellido: "García",
-    correo: "maria.garcia@example.com",
-    telefono: "7123-4567",
-    fecha_nacimiento: "1985-06-15",
-    direccion: "Calle Principal #123, San Miguel",
-    historia_clinica: "Paciente con historial de tratamientos ortodónticos.",
-    role: "paciente",
-  },
-  {
-    id: "2",
-    nombre: "Juan",
-    apellido: "Pérez",
-    correo: "juan.perez@example.com",
-    telefono: "7234-5678",
-    fecha_nacimiento: "1990-03-22",
-    direccion: "Avenida Central #456, San Miguel",
-    role: "paciente",
-  },
-  {
-    id: "3",
-    nombre: "Ana",
-    apellido: "Rodríguez",
-    correo: "ana.rodriguez@example.com",
-    telefono: "7345-6789",
-    fecha_nacimiento: "1978-11-10",
-    direccion: "Colonia Las Flores #789, San Miguel",
-    historia_clinica: "Paciente con sensibilidad dental.",
-    role: "paciente",
-  },
-  {
-    id: "4",
-    nombre: "Carlos",
-    apellido: "Martínez",
-    correo: "carlos.martinez@example.com",
-    telefono: "7456-7890",
-    fecha_nacimiento: "1995-08-05",
-    direccion: "Residencial Los Pinos #101, San Miguel",
-    role: "paciente",
-  },
-  {
-    id: "5",
-    nombre: "Laura",
-    apellido: "Sánchez",
-    correo: "laura.sanchez@example.com",
-    telefono: "7567-8901",
-    fecha_nacimiento: "1982-04-30",
-    direccion: "Barrio El Centro #234, San Miguel",
-    historia_clinica: "Paciente con bruxismo.",
-    role: "paciente",
-  },
-  {
-    id: "6",
-    nombre: "Roberto",
-    apellido: "Gómez",
-    correo: "roberto.gomez@example.com",
-    telefono: "7678-9012",
-    fecha_nacimiento: "1975-12-18",
-    direccion: "Colonia San Francisco #345, San Miguel",
-    role: "paciente",
-  },
-  {
-    id: "7",
-    nombre: "Patricia",
-    apellido: "Hernández",
-    correo: "patricia.hernandez@example.com",
-    telefono: "7789-0123",
-    fecha_nacimiento: "1988-07-25",
-    direccion: "Urbanización Santa María #456, San Miguel",
-    role: "paciente",
-  },
-  {
-    id: "8",
-    nombre: "Miguel",
-    apellido: "Díaz",
-    correo: "miguel.diaz@example.com",
-    telefono: "7890-1234",
-    fecha_nacimiento: "1992-09-14",
-    direccion: "Pasaje Los Almendros #567, San Miguel",
-    historia_clinica: "Paciente con tratamiento de ortodoncia en curso.",
-    role: "paciente",
-  },
-  {
-    id: "9",
-    nombre: "Carmen",
-    apellido: "López",
-    correo: "carmen.lopez@example.com",
-    telefono: "7901-2345",
-    fecha_nacimiento: "1980-02-28",
-    direccion: "Calle Las Palmas #678, San Miguel",
-    role: "paciente",
-  },
-  {
-    id: "10",
-    nombre: "Fernando",
-    apellido: "Torres",
-    correo: "fernando.torres@example.com",
-    telefono: "7012-3456",
-    fecha_nacimiento: "1987-05-10",
-    direccion: "Avenida Los Pinos #789, San Miguel",
-    role: "paciente",
-  },
-  {
-    id: "11",
-    nombre: "Lucía",
-    apellido: "Ramírez",
-    correo: "lucia.ramirez@example.com",
-    telefono: "7123-4567",
-    fecha_nacimiento: "1993-01-15",
-    direccion: "Colonia El Carmen #890, San Miguel",
-    historia_clinica: "Paciente con historial de extracciones.",
-    role: "paciente",
-  },
-  {
-    id: "12",
-    nombre: "Javier",
-    apellido: "Morales",
-    correo: "javier.morales@example.com",
-    telefono: "7234-5678",
-    fecha_nacimiento: "1979-10-20",
-    direccion: "Residencial Las Flores #901, San Miguel",
-    role: "paciente",
-  },
-]
-
-const ITEMS_PER_PAGE = 5
+const ITEMS_PER_PAGE = 10
 
 // Función para normalizar texto (eliminar acentos)
 function normalizeText(text: string): string {
@@ -160,13 +21,25 @@ function normalizeText(text: string): string {
 }
 
 const PatientManagement = () => {
-  const [patients, setPatients] = useState(initialPatients)
+  const { isAuthenticated, isHydrated, token } = useAuth()
+  const [patients, setPatients] = useState<Patient[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [currentPatient, setCurrentPatient] = useState<Patient | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<"list" | "view" | "edit">("list")
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalPatients, setTotalPatients] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+
+  // Estados para el modal de confirmación
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const [filters, setFilters] = useState({
     age: "Todos",
     lastVisit: "Cualquier fecha",
@@ -175,6 +48,51 @@ const PatientManagement = () => {
   })
 
   const [isFiltersApplied, setIsFiltersApplied] = useState(false)
+
+  // Crear API solo si tenemos token
+  const patientsApi = token ? createPatientsApi(token) : null
+
+  // Cargar pacientes
+  const loadPatients = async (page = 1, showRefreshIndicator = false) => {
+    if (!isAuthenticated || !token || !patientsApi) {
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      if (showRefreshIndicator) {
+        setIsRefreshing(true)
+      } else {
+        setIsLoading(true)
+      }
+      setError(null)
+
+      const response = await patientsApi.getPatients(page, ITEMS_PER_PAGE)
+
+      setPatients(response.data)
+      setTotalPages(response.pagination.totalPages)
+      setTotalPatients(response.pagination.total)
+      setCurrentPage(page)
+    } catch (error) {
+      console.error("Error cargando pacientes:", error)
+      setError("Error al cargar los pacientes")
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  // Effect para cargar pacientes cuando esté listo
+  useEffect(() => {
+    // Solo cargar si está hidratado y autenticado
+    if (isHydrated) {
+      if (isAuthenticated && token) {
+        loadPatients(1)
+      } else {
+        setIsLoading(false)
+      }
+    }
+  }, [isHydrated, isAuthenticated, token])
 
   const handleAddNew = () => {
     setCurrentPatient(null)
@@ -193,36 +111,52 @@ const PatientManagement = () => {
     setViewMode("view")
   }
 
-  const handleDelete = (id: string) => {
-    if (window.confirm("¿Está seguro que desea eliminar este paciente?")) {
-      setPatients(patients.filter((patient) => patient.id !== id))
+  const handleDeleteClick = (patient: Patient) => {
+    setPatientToDelete(patient)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!patientsApi || !patientToDelete) return
+
+    setIsDeleting(true)
+    try {
+      await patientsApi.deletePatient(patientToDelete._id)
+      await loadPatients(currentPage)
+      setShowDeleteModal(false)
+      setPatientToDelete(null)
+    } catch (error) {
+      console.error("Error eliminando paciente:", error)
+      alert("Error al eliminar el paciente")
+    } finally {
+      setIsDeleting(false)
     }
   }
 
-  const handleSave = (patientData: Partial<Patient>) => {
-    if (currentPatient) {
-      // Update existing patient
-      setPatients(
-        patients.map((patient) => (patient.id === currentPatient.id ? { ...patient, ...patientData } : patient)),
-      )
-    } else {
-      // Add new patient
-      const newId = Math.max(...patients.map((p) => Number.parseInt(p.id))) + 1
-      const newPatient = {
-        id: newId.toString(),
-        nombre: patientData.nombre || "",
-        apellido: patientData.apellido || "",
-        correo: patientData.correo || "",
-        telefono: patientData.telefono || "",
-        direccion: patientData.direccion || "",
-        fecha_nacimiento: patientData.fecha_nacimiento || "",
-        historia_clinica: patientData.historia_clinica,
-        role: "paciente",
-      }
-      setPatients([...patients, newPatient])
+  const handleDeleteCancel = () => {
+    if (!isDeleting) {
+      setShowDeleteModal(false)
+      setPatientToDelete(null)
     }
-    setIsFormOpen(false)
-    setViewMode("list")
+  }
+
+  const handleSave = async (patientData: any) => {
+    if (!patientsApi) return
+
+    try {
+      if (currentPatient) {
+        await patientsApi.updatePatient(currentPatient._id, patientData)
+      } else {
+        await patientsApi.createPatient(patientData)
+      }
+
+      await loadPatients(currentPage)
+      setIsFormOpen(false)
+      setViewMode("list")
+    } catch (error) {
+      console.error("Error guardando paciente:", error)
+      throw error
+    }
   }
 
   const handleCancel = () => {
@@ -230,12 +164,19 @@ const PatientManagement = () => {
     setViewMode("list")
   }
 
+  const handleRefresh = () => {
+    loadPatients(currentPage, true)
+  }
+
+  const handlePageChange = (page: number) => {
+    loadPatients(page)
+  }
+
   // Filter patients based on search term and filters
   const filteredPatients = useMemo(() => {
     const normalizedSearchTerm = normalizeText(searchTerm)
 
     return patients.filter((patient) => {
-      // Search filter - buscar en nombre completo, correo y teléfono
       const fullName = `${patient.nombre} ${patient.apellido}`
       const matchesSearch =
         normalizeText(fullName).includes(normalizedSearchTerm) ||
@@ -244,16 +185,13 @@ const PatientManagement = () => {
 
       if (!matchesSearch) return false
 
-      // Only apply additional filters if they are active
       if (!isFiltersApplied) return true
 
-      // Age filter
       if (filters.age !== "Todos") {
         const birthDate = new Date(patient.fecha_nacimiento)
         const today = new Date()
         const age = today.getFullYear() - birthDate.getFullYear()
 
-        // Adjust age if birthday hasn't occurred yet this year
         const hasBirthdayOccurred =
           today.getMonth() > birthDate.getMonth() ||
           (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate())
@@ -265,61 +203,19 @@ const PatientManagement = () => {
         if (filters.age === "51+ años" && adjustedAge < 51) return false
       }
 
-      // Historia clínica filter
       if (filters.historiaClinica !== "Todos") {
         if (filters.historiaClinica === "Con historia" && !patient.historia_clinica) return false
         if (filters.historiaClinica === "Sin historia" && patient.historia_clinica) return false
-      }
-
-      // For demo purposes, we'll simulate last visit and status filters
-      // In a real app, these would be actual fields in the patient data
-
-      // Last visit filter (simulated)
-      if (filters.lastVisit !== "Cualquier fecha") {
-        // This is a simulation - in a real app, you'd have actual lastVisit dates
-        const patientId = Number.parseInt(patient.id)
-
-        // Simulate last visit based on patient ID for demo purposes
-        const simulatedLastVisit = new Date()
-        simulatedLastVisit.setDate(simulatedLastVisit.getDate() - patientId * 30) // Each ID is months apart
-
-        const today = new Date()
-        const daysDifference = Math.floor((today.getTime() - simulatedLastVisit.getTime()) / (1000 * 3600 * 24))
-
-        if (filters.lastVisit === "Último mes" && daysDifference > 30) return false
-        if (filters.lastVisit === "Últimos 3 meses" && daysDifference > 90) return false
-        if (filters.lastVisit === "Último año" && daysDifference > 365) return false
-      }
-
-      // Status filter (simulated)
-      if (filters.status !== "Todos") {
-        // This is a simulation - in a real app, you'd have actual status field
-        const isActive = Number.parseInt(patient.id) % 5 !== 0 // Just a demo rule: every 5th patient is inactive
-
-        if (filters.status === "Activo" && !isActive) return false
-        if (filters.status === "Inactivo" && isActive) return false
       }
 
       return true
     })
   }, [patients, searchTerm, filters, isFiltersApplied])
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredPatients.length / ITEMS_PER_PAGE)
-
-  // Get current page items
-  const currentPatients = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    return filteredPatients.slice(startIndex, startIndex + ITEMS_PER_PAGE)
-  }, [filteredPatients, currentPage])
-
-  // Reset to first page when search term changes
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
-    setCurrentPage(1)
   }
 
-  // Handle filter changes
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target
     setFilters((prev) => ({
@@ -328,13 +224,10 @@ const PatientManagement = () => {
     }))
   }
 
-  // Apply filters
   const applyFilters = () => {
     setIsFiltersApplied(true)
-    setCurrentPage(1) // Reset to first page when applying filters
   }
 
-  // Clear filters
   const clearFilters = () => {
     setFilters({
       age: "Todos",
@@ -345,7 +238,6 @@ const PatientManagement = () => {
     setIsFiltersApplied(false)
   }
 
-  // Animación para los elementos de la lista
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -359,6 +251,60 @@ const PatientManagement = () => {
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
+  }
+
+  // Loading state - mostrar solo si no está hidratado O si está cargando
+  if (!isHydrated || isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse"></div>
+          <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-40 animate-pulse"></div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+        <div className="text-center text-sm text-gray-500">
+          Estado: {!isHydrated ? "Hidratando..." : "Cargando pacientes..."}
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Gestión de Pacientes</h1>
+          <button
+            onClick={handleRefresh}
+            className="flex items-center px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reintentar
+          </button>
+        </div>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si no está autenticado
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 text-center">
+          <p className="text-amber-600 dark:text-amber-400">Debes iniciar sesión para ver los pacientes</p>
+        </div>
+      </div>
+    )
   }
 
   if (viewMode === "view" && currentPatient) {
@@ -440,7 +386,7 @@ const PatientManagement = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleDelete(currentPatient.id)}
+              onClick={() => handleDeleteClick(currentPatient)}
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -448,6 +394,19 @@ const PatientManagement = () => {
             </motion.button>
           </div>
         </motion.div>
+
+        {/* Modal de confirmación para eliminar */}
+        <ConfirmModal
+          isOpen={showDeleteModal}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          title="Eliminar Paciente"
+          message={`¿Está seguro que desea eliminar al paciente ${patientToDelete?.nombre} ${patientToDelete?.apellido}? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+          isLoading={isDeleting}
+        />
       </motion.div>
     )
   }
@@ -459,8 +418,21 @@ const PatientManagement = () => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Gestión de Pacientes</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Gestión de Pacientes</h1>
+          <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">Total: {totalPatients} pacientes</p>
+        </div>
         <div className="flex space-x-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center px-3 py-2 bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] rounded-md hover:bg-[hsl(var(--card-hover))] transition-colors duration-200 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? "Actualizando..." : "Actualizar"}
+          </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -514,33 +486,6 @@ const PatientManagement = () => {
                 <option>18-30 años</option>
                 <option>31-50 años</option>
                 <option>51+ años</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Última visita</label>
-              <select
-                name="lastVisit"
-                value={filters.lastVisit}
-                onChange={handleFilterChange}
-                className="w-full border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-200"
-              >
-                <option>Cualquier fecha</option>
-                <option>Último mes</option>
-                <option>Últimos 3 meses</option>
-                <option>Último año</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Estado</label>
-              <select
-                name="status"
-                value={filters.status}
-                onChange={handleFilterChange}
-                className="w-full border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-200"
-              >
-                <option>Todos</option>
-                <option>Activo</option>
-                <option>Inactivo</option>
               </select>
             </div>
             <div>
@@ -617,9 +562,9 @@ const PatientManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-[hsl(var(--card))] transition-colors duration-200 divide-y divide-[hsl(var(--border))]">
-              {currentPatients.map((patient) => (
+              {filteredPatients.map((patient) => (
                 <motion.tr
-                  key={patient.id}
+                  key={patient._id}
                   variants={itemVariants}
                   className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-150"
                 >
@@ -660,7 +605,7 @@ const PatientManagement = () => {
                       <motion.button
                         whileHover={{ scale: 1.2 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDelete(patient.id)}
+                        onClick={() => handleDeleteClick(patient)}
                         className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
                         title="Eliminar"
                       >
@@ -685,15 +630,24 @@ const PatientManagement = () => {
             </motion.div>
           </div>
         ) : (
-          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
         )}
       </div>
+
+      {/* Modal de confirmación para eliminar */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar Paciente"
+        message={`¿Está seguro que desea eliminar al paciente ${patientToDelete?.nombre} ${patientToDelete?.apellido}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </motion.div>
   )
 }
 
 export default PatientManagement
-
-// Si hay badges en esta página, reemplazarlos con el mismo estilo
-// No parece haber badges de estado en esta página, pero si se agregan en el futuro,
-// deberían seguir el mismo patrón de diseño.

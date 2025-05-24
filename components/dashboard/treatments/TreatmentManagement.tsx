@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { Plus, Edit, Trash2, Eye, Search, Activity } from "lucide-react"
 import TreatmentForm from "./TreatmentForm"
 import Pagination from "../common/Pagination"
+import ConfirmModal from "@/components/common/ConfirmModal"
 
 // Sample treatment data
 const initialTreatments = [
@@ -95,6 +96,11 @@ const TreatmentManagement = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
 
+  // Estados para el modal de confirmación
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [treatmentToDelete, setTreatmentToDelete] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const handleAddNew = () => {
     setCurrentTreatment(null)
     setIsFormOpen(true)
@@ -112,9 +118,28 @@ const TreatmentManagement = () => {
     setViewMode("view")
   }
 
-  const handleDelete = (id: number) => {
-    if (window.confirm("¿Está seguro que desea eliminar este tratamiento?")) {
-      setTreatments(treatments.filter((treatment) => treatment.id !== id))
+  const handleDeleteClick = (treatment: any) => {
+    setTreatmentToDelete(treatment)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!treatmentToDelete) return
+
+    setIsDeleting(true)
+    // Simular delay de API
+    setTimeout(() => {
+      setTreatments(treatments.filter((treatment) => treatment.id !== treatmentToDelete.id))
+      setShowDeleteModal(false)
+      setTreatmentToDelete(null)
+      setIsDeleting(false)
+    }, 1000)
+  }
+
+  const handleDeleteCancel = () => {
+    if (!isDeleting) {
+      setShowDeleteModal(false)
+      setTreatmentToDelete(null)
     }
   }
 
@@ -250,13 +275,26 @@ const TreatmentManagement = () => {
               Editar
             </button>
             <button
-              onClick={() => handleDelete(currentTreatment.id)}
+              onClick={() => handleDeleteClick(currentTreatment)}
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
             >
               Eliminar
             </button>
           </div>
         </div>
+
+        {/* Modal de confirmación para eliminar */}
+        <ConfirmModal
+          isOpen={showDeleteModal}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          title="Eliminar Tratamiento"
+          message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.treatmentType} para ${treatmentToDelete?.patientName}? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+          isLoading={isDeleting}
+        />
       </div>
     )
   }
@@ -389,7 +427,7 @@ const TreatmentManagement = () => {
                         <Edit className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(treatment.id)}
+                        onClick={() => handleDeleteClick(treatment)}
                         className="text-red-500 hover:text-red-600"
                         title="Eliminar"
                       >
@@ -412,6 +450,19 @@ const TreatmentManagement = () => {
           <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
         )}
       </div>
+
+      {/* Modal de confirmación para eliminar */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar Tratamiento"
+        message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.treatmentType} para ${treatmentToDelete?.patientName}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   )
 }

@@ -41,6 +41,45 @@ export interface Patient {
   nombre: string
   apellido: string
   correo: string
+  telefono: string
+  direccion: string
+  fecha_nacimiento: string
+  historia_clinica?: string
+  password?: string
+  role: string
+  __v?: number
+}
+
+export interface CreatePatientRequest {
+  nombre: string
+  apellido: string
+  correo: string
+  telefono: string
+  direccion: string
+  fecha_nacimiento: string
+  historia_clinica?: string
+  password: string
+}
+
+export interface UpdatePatientRequest {
+  nombre: string
+  apellido: string
+  correo: string
+  telefono: string
+  direccion: string
+  fecha_nacimiento: string
+  historia_clinica?: string
+  password?: string
+}
+
+export interface PatientsResponse {
+  data: Patient[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export interface Doctor {
@@ -119,12 +158,28 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?
 
   // En modo desarrollo, simular respuestas
   if (DEV_MODE) {
-    return simulateApiResponse<T>(endpoint, options.method || "GET")
+    return simulateApiResponse<T>(endpoint, options.method || "GET", options.body as string)
   }
 
   const response = await fetch(url, config)
 
   if (!response.ok) {
+    // Intentar obtener el mensaje de error del servidor
+    let errorMessage = `Error ${response.status}: ${response.statusText}`
+
+    try {
+      const errorData = await response.json()
+      if (errorData.message) {
+        errorMessage = errorData.message
+      } else if (errorData.error) {
+        errorMessage = errorData.error
+      } else if (errorData.errors && Array.isArray(errorData.errors)) {
+        errorMessage = errorData.errors.join(", ")
+      }
+    } catch (parseError) {
+      // Si no se puede parsear el error, usar el mensaje por defecto
+    }
+
     if (response.status === 401) {
       // Token inválido, limpiar localStorage
       if (typeof window !== "undefined") {
@@ -134,14 +189,15 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?
       }
       throw new Error("Token inválido")
     }
-    throw new Error(`Error ${response.status}: ${response.statusText}`)
+
+    throw new Error(errorMessage)
   }
 
   return response.json()
 }
 
 // Simulador para modo desarrollo
-function simulateApiResponse<T>(endpoint: string, method: string): Promise<T> {
+function simulateApiResponse<T>(endpoint: string, method: string, body?: string): Promise<T> {
   return new Promise((resolve) => {
     setTimeout(() => {
       if (endpoint === "/api/auth/login") {
@@ -281,6 +337,68 @@ function simulateApiResponse<T>(endpoint: string, method: string): Promise<T> {
             totalPages: 1,
           },
         } as T)
+      } else if (endpoint === "/pacientes") {
+        if (method === "POST") {
+          const requestData = JSON.parse(body || "{}")
+          resolve({
+            _id: "new-patient-id",
+            ...requestData,
+            fecha_nacimiento: new Date(requestData.fecha_nacimiento).toISOString(),
+            password: "$2b$10$hashedpassword",
+            role: "paciente",
+            __v: 0,
+          } as T)
+        } else {
+          resolve({
+            data: [
+              {
+                _id: "67f4a50ec5e2bcae913f7871",
+                nombre: "Javier",
+                apellido: "Martinez",
+                correo: "paciente@ejemplo.com",
+                telefono: "1234567890",
+                direccion: "Calle Falsa 123",
+                fecha_nacimiento: "1990-01-01T00:00:00.000Z",
+                password: "$2b$10$hashedpassword",
+                role: "paciente",
+                __v: 0,
+              },
+              {
+                _id: "682fe194e35012e49e5f8eca",
+                nombre: "Jose",
+                apellido: "Carlos",
+                correo: "jose.carlos@example.com",
+                telefono: "123456789",
+                direccion: "Calle Falsa 123",
+                fecha_nacimiento: "1990-05-15T00:00:00.000Z",
+                historia_clinica: "Sin antecedentes médicos importantes",
+                password: "$2b$10$hashedpassword",
+                role: "paciente",
+                __v: 0,
+              },
+            ],
+            pagination: {
+              total: 2,
+              page: 1,
+              limit: 10,
+              totalPages: 1,
+            },
+          } as T)
+        }
+      } else if (endpoint.includes("/pacientes/") && method === "PUT") {
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          _id: endpoint.split("/").pop(),
+          ...requestData,
+          fecha_nacimiento: new Date(requestData.fecha_nacimiento).toISOString(),
+          password: "$2b$10$hashedpassword",
+          role: "paciente",
+          __v: 0,
+        } as T)
+      } else if (endpoint.includes("/pacientes/") && method === "DELETE") {
+        resolve({
+          message: "Paciente eliminado",
+        } as T)
       }
 
       // Respuesta por defecto
@@ -353,6 +471,61 @@ export const createDashboardApi = (token: string) => ({
       "/api/citas",
       {
         method: "GET",
+      },
+      token,
+    )
+  },
+})
+
+// API de pacientes
+export const createPatientsApi = (token: string) => ({
+  getPatients: (page = 1, limit = 10): Promise<PatientsResponse> => {
+    return apiRequest<PatientsResponse>(
+      `/pacientes?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  getPatientById: (id: string): Promise<Patient> => {
+    return apiRequest<Patient>(
+      `/pacientes/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  createPatient: (patientData: CreatePatientRequest): Promise<Patient> => {
+    return apiRequest<Patient>(
+      "/pacientes",
+      {
+        method: "POST",
+        body: JSON.stringify(patientData),
+      },
+      token,
+    )
+  },
+
+  updatePatient: (id: string, patientData: UpdatePatientRequest): Promise<Patient> => {
+    return apiRequest<Patient>(
+      `/pacientes/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(patientData),
+      },
+      token,
+    )
+  },
+
+  deletePatient: (id: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(
+      `/pacientes/${id}`,
+      {
+        method: "DELETE",
       },
       token,
     )

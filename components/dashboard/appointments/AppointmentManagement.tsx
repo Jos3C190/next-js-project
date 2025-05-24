@@ -6,6 +6,7 @@ import { useState, useMemo } from "react"
 import { Plus, Edit, Trash2, Eye, Search, Filter } from "lucide-react"
 import AppointmentForm from "./AppointmentForm"
 import Pagination from "../common/Pagination"
+import ConfirmModal from "@/components/common/ConfirmModal"
 import { motion } from "framer-motion"
 
 // Interfaz para citas según el esquema
@@ -168,6 +169,11 @@ const AppointmentManagement = () => {
   })
   const [isFiltersApplied, setIsFiltersApplied] = useState(false)
 
+  // Estados para el modal de confirmación
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const handleAddNew = () => {
     setCurrentAppointment(null)
     setIsFormOpen(true)
@@ -185,9 +191,28 @@ const AppointmentManagement = () => {
     setViewMode("view")
   }
 
-  const handleDelete = (id: string) => {
-    if (window.confirm("¿Está seguro que desea eliminar esta cita?")) {
-      setAppointments(appointments.filter((appointment) => appointment.id !== id))
+  const handleDeleteClick = (appointment: Appointment) => {
+    setAppointmentToDelete(appointment)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (!appointmentToDelete) return
+
+    setIsDeleting(true)
+    // Simular delay de API
+    setTimeout(() => {
+      setAppointments(appointments.filter((appointment) => appointment.id !== appointmentToDelete.id))
+      setShowDeleteModal(false)
+      setAppointmentToDelete(null)
+      setIsDeleting(false)
+    }, 1000)
+  }
+
+  const handleDeleteCancel = () => {
+    if (!isDeleting) {
+      setShowDeleteModal(false)
+      setAppointmentToDelete(null)
     }
   }
 
@@ -398,13 +423,26 @@ const AppointmentManagement = () => {
               Editar
             </button>
             <button
-              onClick={() => handleDelete(currentAppointment.id)}
+              onClick={() => handleDeleteClick(currentAppointment)}
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
             >
               Eliminar
             </button>
           </div>
         </div>
+
+        {/* Modal de confirmación para eliminar */}
+        <ConfirmModal
+          isOpen={showDeleteModal}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          title="Eliminar Cita"
+          message={`¿Está seguro que desea eliminar la cita de ${appointmentToDelete?.pacienteNombre} programada para el ${appointmentToDelete ? formatDate(appointmentToDelete.fecha) : ""}? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+          isLoading={isDeleting}
+        />
       </div>
     )
   }
@@ -605,7 +643,7 @@ const AppointmentManagement = () => {
                       <Edit className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(appointment.id)}
+                      onClick={() => handleDeleteClick(appointment)}
                       className="text-red-500 hover:text-red-600"
                       title="Eliminar"
                     >
@@ -632,6 +670,19 @@ const AppointmentManagement = () => {
           <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         )}
       </div>
+
+      {/* Modal de confirmación para eliminar */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar Cita"
+        message={`¿Está seguro que desea eliminar la cita de ${appointmentToDelete?.pacienteNombre} programada para el ${appointmentToDelete ? formatDate(appointmentToDelete.fecha) : ""}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   )
 }
