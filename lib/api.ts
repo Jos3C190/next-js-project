@@ -539,6 +539,20 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
             },
           } as T)
         }
+      } else if (endpoint === "/api/citas" && method === "POST") {
+        // Cita pública sin autenticación
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          message: "Cita creada con éxito. Nos pondremos en contacto contigo pronto.",
+          cita: {
+            _id: "new-public-appointment-id",
+            ...requestData,
+            fecha: new Date(requestData.fecha).toISOString(),
+            estado: "pendiente",
+            createdAt: new Date().toISOString(),
+            __v: 0,
+          },
+        } as T)
       } else if (endpoint.includes("/api/citas/") && endpoint.includes("/cancelar") && method === "PATCH") {
         resolve({
           message: "Cita cancelada con éxito",
@@ -550,14 +564,11 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
       } else if (endpoint.includes("/api/citas/") && method === "PUT") {
         const requestData = JSON.parse(body || "{}")
         resolve({
-          message: "Cita actualizada con éxito",
-          cita: {
-            _id: endpoint.split("/").pop(),
-            ...requestData,
-            fecha: requestData.fecha ? new Date(requestData.fecha).toISOString() : undefined,
-            createdAt: "2025-01-20T10:00:00.000Z",
-            __v: 0,
-          },
+          _id: endpoint.split("/").pop(),
+          ...requestData,
+          fecha: requestData.fecha ? new Date(requestData.fecha).toISOString() : undefined,
+          createdAt: "2025-01-20T10:00:00.000Z",
+          __v: 0,
         } as T)
       } else if (endpoint.includes("/api/citas/") && method === "DELETE") {
         resolve({
@@ -1418,3 +1429,21 @@ export const createPatientAppointmentsApi = (token: string) => ({
     )
   },
 })
+
+// API para citas públicas (sin autenticación)
+export const publicAppointmentsApi = {
+  // Crear una cita desde la landing page (sin autenticación)
+  createPublicAppointment: (appointmentData: {
+    nombre: string
+    apellido: string
+    telefono: string
+    correo: string
+    fecha: string
+    hora: string
+  }): Promise<{ message: string; cita: any }> => {
+    return apiRequest<{ message: string; cita: any }>("/api/citas", {
+      method: "POST",
+      body: JSON.stringify(appointmentData),
+    })
+  },
+}

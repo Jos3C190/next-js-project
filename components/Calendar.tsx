@@ -26,34 +26,41 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
     // Set current time (rounded to nearest 15 minutes) for min time if today is selected
     const hours = currentDate.getHours()
     const minutes = Math.ceil(currentDate.getMinutes() / 15) * 15
-    const formattedTime = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`
+    const formattedTime = `${hours.toString().padStart(2, "0")}:${(minutes >= 60 ? 0 : minutes).toString().padStart(2, "0")}`
     setMinTime(formattedTime)
   }, [])
 
   // Función para manejar la selección de fecha usando inputs nativos
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dateValue = e.target.value
-    const newDate = dateValue ? new Date(dateValue) : null
     setDateSelected(dateValue)
 
-    // Reset time when date changes
-    if (newDate) {
-      newDate.setHours(0, 0, 0, 0) // Reset time part
-    }
-
-    setSelectedDate(newDate)
-    if (onDateSelect) {
-      onDateSelect(newDate)
+    if (dateValue) {
+      // Crear nueva fecha y establecer hora por defecto
+      const newDate = new Date(dateValue + "T00:00:00")
+      setSelectedDate(newDate)
+      if (onDateSelect) {
+        onDateSelect(newDate)
+      }
+    } else {
+      setSelectedDate(null)
+      if (onDateSelect) {
+        onDateSelect(null)
+      }
     }
   }
 
   // Función para manejar la selección de hora
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!selectedDate) return
+    if (!selectedDate || !dateSelected) return
 
     const timeValue = e.target.value
+    if (!timeValue) return
+
     const [hours, minutes] = timeValue.split(":").map(Number)
-    const newDate = new Date(selectedDate)
+
+    // Crear nueva fecha con la fecha seleccionada y la nueva hora
+    const newDate = new Date(dateSelected + "T00:00:00")
     newDate.setHours(hours, minutes, 0, 0)
 
     setSelectedDate(newDate)
@@ -64,6 +71,26 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
 
   // Check if selected date is today
   const isToday = dateSelected === today
+
+  // Función segura para formatear la fecha
+  const formatSelectedDate = () => {
+    if (!selectedDate || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
+      return "No hay fecha seleccionada"
+    }
+
+    try {
+      return selectedDate.toLocaleString("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch (error) {
+      console.error("Error formatting date:", error)
+      return "Fecha inválida"
+    }
+  }
 
   return (
     <section id="AgendarCita" className="py-10 justify-items-center bg-gray-200">
@@ -76,6 +103,7 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
           <input
             id="date-select"
             type="date"
+            value={dateSelected}
             onChange={handleDateChange}
             min={today} // Set minimum date to today
             className="w-full p-2 border border-gray-300 rounded"
@@ -83,7 +111,7 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
           <p className="text-sm text-gray-500 mt-1">Solo puedes seleccionar fechas a partir de hoy</p>
         </div>
 
-        {selectedDate && (
+        {selectedDate && dateSelected && (
           <div className="mb-4">
             <label htmlFor="time-select" className="block text-gray-700 font-bold mb-2">
               Selecciona una hora
@@ -104,27 +132,22 @@ const Calendar = ({ onDateSelect }: CalendarProps) => {
         )}
       </div>
 
-      {selectedDate && (
-        <p className="text-center text-lg font-bold pb-4 pt-2">
-          Fecha y Hora:{" "}
-          {selectedDate.toLocaleString("es-ES", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </p>
+      {selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime()) && (
+        <p className="text-center text-lg font-bold pb-4 pt-2">Fecha y Hora: {formatSelectedDate()}</p>
       )}
 
       <button
         className={`p-3 font-bold rounded-sm transition duration-500 mx-auto block ${
-          selectedDate
+          selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())
             ? "bg-gray-800 text-red-400 hover:bg-red-400 hover:text-gray-700 cursor-pointer"
             : "bg-gray-400 text-gray-700 cursor-not-allowed"
         }`}
-        onClick={() => selectedDate && setIsModalOpen(true)}
-        disabled={!selectedDate}
+        onClick={() => {
+          if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
+            setIsModalOpen(true)
+          }
+        }}
+        disabled={!selectedDate || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime())}
       >
         CONTINUAR
       </button>
