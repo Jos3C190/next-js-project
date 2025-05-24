@@ -1,0 +1,13 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/dashboard/payments/page": "/dashboard/payments",
+  "/dashboard/page": "/dashboard",
+  "/dashboard/appointments/page": "/dashboard/appointments",
+  "/dashboard/records/page": "/dashboard/records",
+  "/dashboard/patients/page": "/dashboard/patients",
+  "/dashboard/reports/page": "/dashboard/reports",
+  "/dashboard/statistics/page": "/dashboard/statistics",
+  "/dashboard/treatments/page": "/dashboard/treatments",
+  "/dashboard/users/page": "/dashboard/users"
+}
