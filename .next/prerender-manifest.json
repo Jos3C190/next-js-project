@@ -25,30 +25,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/dashboard/treatments": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard/treatments",
-      "dataRoute": "/dashboard/treatments.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/": {
       "experimentalBypassFor": [
         {
@@ -73,7 +49,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/dashboard/appointments": {
+    "/dashboard/treatments": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -86,8 +62,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard/appointments",
-      "dataRoute": "/dashboard/appointments.rsc",
+      "srcRoute": "/dashboard/treatments",
+      "dataRoute": "/dashboard/treatments.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -121,7 +97,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/dashboard/statistics": {
+    "/dashboard": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -134,8 +110,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard/statistics",
-      "dataRoute": "/dashboard/statistics.rsc",
+      "srcRoute": "/dashboard",
+      "dataRoute": "/dashboard.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -169,7 +145,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/dashboard": {
+    "/dashboard/appointments": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -182,32 +158,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard",
-      "dataRoute": "/dashboard.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
-    "/dashboard/patients": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/dashboard/patients",
-      "dataRoute": "/dashboard/patients.rsc",
+      "srcRoute": "/dashboard/appointments",
+      "dataRoute": "/dashboard/appointments.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -240,13 +192,61 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/dashboard/statistics": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dashboard/statistics",
+      "dataRoute": "/dashboard/statistics.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
+    },
+    "/dashboard/patients": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dashboard/patients",
+      "dataRoute": "/dashboard/patients.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "4a0a95995569f3e4d28afc0da183af64",
-    "previewModeSigningKey": "83b7eb5d3321a29f2af0ae1edd9a79df4b5d15701cd7ca65ab8c00ac855d7a00",
-    "previewModeEncryptionKey": "655c3bd6782fa1e7baaa547c834dcb0d513da5766bf6bc23f48ea26f1022cd78"
+    "previewModeId": "4c6e490cbdfca010c9918f761cad6087",
+    "previewModeSigningKey": "f924b1bbcbfafc622aeb51fb6c153454148c6762581bcc11f366c371fc78c63a",
+    "previewModeEncryptionKey": "7319b1440351b5065535a3840464d0ee04f2de27647a799232dc2e54a8691904"
   }
 }

@@ -52,7 +52,7 @@ export function useDashboardData() {
       const [statsResult, appointmentsResult, activitiesResult, allAppointmentsResult] = await Promise.allSettled([
         api.getStats(),
         api.getRecentAppointments(5),
-        api.getActivity(10),
+        api.getActivity(), // Remover el límite fijo de 10
         api.getAllAppointments(),
       ])
 

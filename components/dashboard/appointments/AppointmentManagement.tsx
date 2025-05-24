@@ -2,150 +2,23 @@
 
 import type React from "react"
 
-import { useState, useMemo } from "react"
-import { Plus, Edit, Trash2, Eye, Search, Filter } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Plus, Edit, Trash2, Eye, Search, Filter, RefreshCw } from "lucide-react"
+import { motion } from "framer-motion"
+import { useAuth } from "@/context/AuthContext"
+import {
+  createAppointmentsApi,
+  createDentistsApi,
+  createPatientsApi,
+  type Appointment,
+  type Dentist,
+  type Patient,
+} from "@/lib/api"
 import AppointmentForm from "./AppointmentForm"
 import Pagination from "../common/Pagination"
 import ConfirmModal from "@/components/common/ConfirmModal"
-import { motion } from "framer-motion"
 
-// Interfaz para citas según el esquema
-interface Appointment {
-  id: string // Simulando ObjectId
-  pacienteId?: string // Opcional según el esquema
-  pacienteTemporalId?: string // Opcional según el esquema
-  odontologoId: string
-  fecha: string // Formato ISO para fechas
-  hora: string // Formato HH:MM
-  motivo: string
-  estado: "pendiente" | "completada" | "cancelada"
-  createdAt: string // Formato ISO para fechas
-  // Campos adicionales para la UI
-  pacienteNombre?: string // Para mostrar en la tabla
-}
-
-// Datos de ejemplo de odontólogos para el formulario
-const dentists = [
-  { id: "1", nombre: "Dra. Linares" },
-  { id: "2", nombre: "Dr. Martínez" },
-  { id: "3", nombre: "Dra. Rodríguez" },
-]
-
-// Sample appointment data actualizado según el esquema
-const initialAppointments: Appointment[] = [
-  {
-    id: "1",
-    pacienteId: "1",
-    pacienteNombre: "María García",
-    odontologoId: "1",
-    fecha: "2025-05-20",
-    hora: "10:00",
-    motivo: "Limpieza Dental",
-    estado: "pendiente",
-    createdAt: "2025-05-01T10:00:00",
-  },
-  {
-    id: "2",
-    pacienteId: "2",
-    pacienteNombre: "Juan Pérez",
-    odontologoId: "1",
-    fecha: "2025-05-20",
-    hora: "11:00",
-    motivo: "Ortodoncia",
-    estado: "pendiente",
-    createdAt: "2025-05-01T11:30:00",
-  },
-  {
-    id: "3",
-    pacienteId: "3",
-    pacienteNombre: "Ana Rodríguez",
-    odontologoId: "2",
-    fecha: "2025-05-21",
-    hora: "09:30",
-    motivo: "Extracción",
-    estado: "pendiente",
-    createdAt: "2025-05-02T14:00:00",
-  },
-  {
-    id: "4",
-    pacienteId: "4",
-    pacienteNombre: "Carlos Martínez",
-    odontologoId: "3",
-    fecha: "2025-05-22",
-    hora: "14:00",
-    motivo: "Consulta inicial",
-    estado: "pendiente",
-    createdAt: "2025-05-03T09:15:00",
-  },
-  {
-    id: "5",
-    pacienteId: "5",
-    pacienteNombre: "Laura Sánchez",
-    odontologoId: "1",
-    fecha: "2025-05-23",
-    hora: "16:30",
-    motivo: "Blanqueamiento",
-    estado: "pendiente",
-    createdAt: "2025-05-04T11:45:00",
-  },
-  {
-    id: "6",
-    pacienteNombre: "Roberto Gómez", // Paciente temporal sin ID
-    pacienteTemporalId: "t1",
-    odontologoId: "2",
-    fecha: "2025-05-24",
-    hora: "10:00",
-    motivo: "Consulta inicial",
-    estado: "pendiente",
-    createdAt: "2025-05-05T16:20:00",
-  },
-  {
-    id: "7",
-    pacienteId: "7",
-    pacienteNombre: "Patricia Hernández",
-    odontologoId: "3",
-    fecha: "2025-05-24",
-    hora: "11:00",
-    motivo: "Relleno",
-    estado: "pendiente",
-    createdAt: "2025-05-06T10:30:00",
-  },
-  {
-    id: "8",
-    pacienteId: "8",
-    pacienteNombre: "Miguel Díaz",
-    odontologoId: "1",
-    fecha: "2025-05-25",
-    hora: "09:30",
-    motivo: "Ortodoncia",
-    estado: "pendiente",
-    createdAt: "2025-05-07T14:15:00",
-  },
-  {
-    id: "9",
-    pacienteId: "9",
-    pacienteNombre: "Carmen López",
-    odontologoId: "2",
-    fecha: "2025-05-25",
-    hora: "14:00",
-    motivo: "Limpieza Dental",
-    estado: "pendiente",
-    createdAt: "2025-05-08T09:45:00",
-  },
-  {
-    id: "10",
-    pacienteId: "10",
-    pacienteNombre: "Fernando Torres",
-    odontologoId: "3",
-    fecha: "2025-05-26",
-    hora: "16:30",
-    motivo: "Consulta inicial",
-    estado: "pendiente",
-    createdAt: "2025-05-09T11:00:00",
-  },
-]
-
-const ITEMS_PER_PAGE = 5
+const ITEMS_PER_PAGE = 10
 
 function normalizeText(text: string): string {
   return text
@@ -155,12 +28,17 @@ function normalizeText(text: string): string {
 }
 
 const AppointmentManagement = () => {
-  const [appointments, setAppointments] = useState(initialAppointments)
+  const { token } = useAuth()
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [dentists, setDentists] = useState<Dentist[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [currentAppointment, setCurrentAppointment] = useState<Appointment | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<"list" | "view" | "edit">("list")
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     dentist: "Todos",
@@ -173,6 +51,61 @@ const AppointmentManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Crear instancias de API
+  const appointmentsApi = token ? createAppointmentsApi(token) : null
+  const dentistsApi = token ? createDentistsApi(token) : null
+  const patientsApi = token ? createPatientsApi(token) : null
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    if (token) {
+      loadInitialData()
+    }
+  }, [token])
+
+  const loadInitialData = async () => {
+    if (!appointmentsApi || !dentistsApi || !patientsApi) return
+
+    try {
+      setIsLoading(true)
+
+      // Cargar datos en paralelo
+      const [appointmentsResponse, dentistsResponse, patientsResponse] = await Promise.all([
+        appointmentsApi.getAppointments(1, ITEMS_PER_PAGE),
+        dentistsApi.getDentists(1, 100), // Cargar todos los dentistas
+        patientsApi.getPatients(1, 1000), // Cargar todos los pacientes para el formulario
+      ])
+
+      setAppointments(appointmentsResponse.data)
+      setTotalPages(appointmentsResponse.pagination.totalPages)
+      setDentists(dentistsResponse.data)
+      setPatients(patientsResponse.data)
+    } catch (error) {
+      console.error("Error loading data:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Cargar citas cuando cambie la página
+  useEffect(() => {
+    if (token && appointmentsApi) {
+      loadAppointments(currentPage)
+    }
+  }, [currentPage, token])
+
+  const loadAppointments = async (page: number) => {
+    if (!appointmentsApi) return
+
+    try {
+      const response = await appointmentsApi.getAppointments(page, ITEMS_PER_PAGE)
+      setAppointments(response.data)
+      setTotalPages(response.pagination.totalPages)
+    } catch (error) {
+      console.error("Error loading appointments:", error)
+    }
+  }
 
   const handleAddNew = () => {
     setCurrentAppointment(null)
@@ -196,17 +129,20 @@ const AppointmentManagement = () => {
     setShowDeleteModal(true)
   }
 
-  const handleDeleteConfirm = () => {
-    if (!appointmentToDelete) return
+  const handleDeleteConfirm = async () => {
+    if (!appointmentToDelete || !appointmentsApi) return
 
     setIsDeleting(true)
-    // Simular delay de API
-    setTimeout(() => {
-      setAppointments(appointments.filter((appointment) => appointment.id !== appointmentToDelete.id))
+    try {
+      await appointmentsApi.deleteAppointment(appointmentToDelete._id)
+      await loadAppointments(currentPage)
       setShowDeleteModal(false)
       setAppointmentToDelete(null)
+    } catch (error) {
+      console.error("Error deleting appointment:", error)
+    } finally {
       setIsDeleting(false)
-    }, 1000)
+    }
   }
 
   const handleDeleteCancel = () => {
@@ -216,38 +152,34 @@ const AppointmentManagement = () => {
     }
   }
 
-  const handleSave = (appointmentData: Partial<Appointment>) => {
-    if (currentAppointment) {
-      // Update existing appointment
-      setAppointments(
-        appointments.map((appointment) =>
-          appointment.id === currentAppointment.id ? { ...appointment, ...appointmentData } : appointment,
-        ),
-      )
-    } else {
-      // Add new appointment
-      const newId = Math.max(...appointments.map((a) => Number.parseInt(a.id))) + 1
-      const newAppointment: Appointment = {
-        id: newId.toString(),
-        pacienteId: appointmentData.pacienteId,
-        pacienteTemporalId: appointmentData.pacienteTemporalId,
-        pacienteNombre: appointmentData.pacienteNombre,
-        odontologoId: appointmentData.odontologoId || "1", // Default to first dentist
-        fecha: appointmentData.fecha || new Date().toISOString().split("T")[0],
-        hora: appointmentData.hora || "09:00",
-        motivo: appointmentData.motivo || "Consulta inicial",
-        estado: appointmentData.estado || "pendiente",
-        createdAt: new Date().toISOString(),
+  const handleSave = async (appointmentData: any) => {
+    if (!appointmentsApi) return
+
+    try {
+      if (currentAppointment) {
+        // Actualizar cita existente
+        await appointmentsApi.updateAppointment(currentAppointment._id, appointmentData)
+      } else {
+        // Crear nueva cita
+        await appointmentsApi.createAppointment(appointmentData)
       }
-      setAppointments([...appointments, newAppointment])
+
+      await loadAppointments(currentPage)
+      setIsFormOpen(false)
+      setViewMode("list")
+    } catch (error) {
+      // Re-lanzar el error para que lo capture el formulario
+      throw error
     }
-    setIsFormOpen(false)
-    setViewMode("list")
   }
 
   const handleCancel = () => {
     setIsFormOpen(false)
     setViewMode("list")
+  }
+
+  const handleRefresh = () => {
+    loadAppointments(currentPage)
   }
 
   // Handle filter changes
@@ -262,7 +194,7 @@ const AppointmentManagement = () => {
   // Apply filters
   const applyFilters = () => {
     setIsFiltersApplied(true)
-    setCurrentPage(1) // Reset to first page when applying filters
+    setCurrentPage(1)
   }
 
   // Clear filters
@@ -275,70 +207,22 @@ const AppointmentManagement = () => {
     setIsFiltersApplied(false)
   }
 
-  // Filter appointments based on search term and filters
-  const filteredAppointments = useMemo(() => {
-    const normalizedSearchTerm = normalizeText(searchTerm)
+  // Get patient name
+  const getPatientName = (appointment: Appointment | null) => {
+    if (!appointment) return "Paciente desconocido"
 
-    return appointments.filter((appointment) => {
-      // Search filter
-      const matchesSearch = appointment.pacienteNombre
-        ? normalizeText(appointment.pacienteNombre).includes(normalizedSearchTerm) ||
-          normalizeText(appointment.motivo).includes(normalizedSearchTerm)
-        : normalizeText(appointment.motivo).includes(normalizedSearchTerm)
-
-      if (!matchesSearch) return false
-
-      // Only apply additional filters if they are active
-      if (!isFiltersApplied) return true
-
-      // Dentist filter
-      if (filters.dentist !== "Todos" && appointment.odontologoId !== filters.dentist) {
-        return false
-      }
-
-      // Date filter
-      if (filters.date && appointment.fecha !== filters.date) {
-        return false
-      }
-
-      // Status filter
-      if (filters.status !== "Todos" && appointment.estado !== filters.status.toLowerCase()) {
-        return false
-      }
-
-      return true
-    })
-  }, [appointments, searchTerm, filters, isFiltersApplied])
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE)
-
-  // Get current page items
-  const currentAppointments = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    return filteredAppointments.slice(startIndex, startIndex + ITEMS_PER_PAGE)
-  }, [filteredAppointments, currentPage])
-
-  // Reset to first page when search term changes
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-    setCurrentPage(1)
+    if (appointment.pacienteId) {
+      return `${appointment.pacienteId.nombre} ${appointment.pacienteId.apellido}`
+    } else if (appointment.pacienteTemporalId) {
+      return `${appointment.pacienteTemporalId.nombre} ${appointment.pacienteTemporalId.apellido} (Temporal)`
+    }
+    return "Paciente desconocido"
   }
 
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
-
-  // Get dentist name by ID
-  const getDentistName = (id: string) => {
-    const dentist = dentists.find((d) => d.id === id)
-    return dentist ? dentist.nombre : "Desconocido"
+  // Get dentist name
+  const getDentistName = (appointment: Appointment | null) => {
+    if (!appointment || !appointment.odontologoId) return "Odontólogo desconocido"
+    return `${appointment.odontologoId.nombre} ${appointment.odontologoId.apellido}`
   }
 
   // Translate status to Spanish
@@ -359,14 +243,102 @@ const AppointmentManagement = () => {
   const getStatusClass = (status: string) => {
     switch (status) {
       case "pendiente":
-        return "bg-blue-100 text-blue-800"
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
       case "completada":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
       case "cancelada":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
     }
+  }
+
+  // Filter appointments based on search term and filters
+  const filteredAppointments = useMemo(() => {
+    const normalizedSearchTerm = normalizeText(searchTerm)
+
+    return appointments.filter((appointment) => {
+      // Validar que la cita existe y tiene datos mínimos
+      if (!appointment || !appointment._id) return false
+
+      // Search filter
+      const patientName = appointment.pacienteId
+        ? `${appointment.pacienteId.nombre || ""} ${appointment.pacienteId.apellido || ""}`
+        : appointment.pacienteTemporalId
+          ? `${appointment.pacienteTemporalId.nombre || ""} ${appointment.pacienteTemporalId.apellido || ""}`
+          : ""
+
+      const dentistName = appointment.odontologoId
+        ? `${appointment.odontologoId.nombre || ""} ${appointment.odontologoId.apellido || ""}`
+        : ""
+
+      const matchesSearch =
+        normalizeText(patientName).includes(normalizedSearchTerm) ||
+        normalizeText(dentistName).includes(normalizedSearchTerm) ||
+        normalizeText(appointment.motivo || "").includes(normalizedSearchTerm)
+
+      if (!matchesSearch) return false
+
+      // Only apply additional filters if they are active
+      if (!isFiltersApplied) return true
+
+      // Dentist filter
+      if (filters.dentist !== "Todos" && appointment.odontologoId?._id !== filters.dentist) {
+        return false
+      }
+
+      // Date filter
+      if (filters.date && appointment.fecha && !appointment.fecha.startsWith(filters.date)) {
+        return false
+      }
+
+      // Status filter
+      if (filters.status !== "Todos" && appointment.estado !== filters.status.toLowerCase()) {
+        return false
+      }
+
+      return true
+    })
+  }, [appointments, searchTerm, filters, isFiltersApplied])
+
+  // Reset to first page when search term changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+    setCurrentPage(1)
+  }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    // Crear la fecha directamente desde la cadena YYYY-MM-DD para evitar problemas de zona horaria
+    const [year, month, day] = dateString.split("T")[0].split("-")
+    const date = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
+
+    return date.toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse"></div>
+          <div className="flex space-x-2">
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"></div>
+          </div>
+        </div>
+        <div className="bg-[hsl(var(--card))] rounded-lg p-6">
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (viewMode === "view" && currentAppointment) {
@@ -385,46 +357,50 @@ const AppointmentManagement = () => {
         <div className="bg-[hsl(var(--card))] transition-colors duration-200 shadow-md rounded-lg p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h2 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">Información de la Cita</h2>
-              <p className="text-[hsl(var(--foreground))]">
-                <span className="font-semibold">Paciente:</span>{" "}
-                {currentAppointment.pacienteNombre || "Paciente temporal"}
-              </p>
-              <p className="text-[hsl(var(--foreground))]">
-                <span className="font-semibold">Odontólogo:</span> {getDentistName(currentAppointment.odontologoId)}
-              </p>
-              <p className="text-[hsl(var(--foreground))]">
-                <span className="font-semibold">Fecha:</span> {formatDate(currentAppointment.fecha)}
-              </p>
-              <p className="text-[hsl(var(--foreground))]">
-                <span className="font-semibold">Hora:</span> {currentAppointment.hora}
-              </p>
-              <p className="text-[hsl(var(--foreground))]">
-                <span className="font-semibold">Motivo:</span> {currentAppointment.motivo}
-              </p>
-              <p className="text-[hsl(var(--foreground))]">
-                <span className="font-semibold">Estado:</span>{" "}
-                <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(currentAppointment.estado)}`}>
-                  {translateStatus(currentAppointment.estado)}
-                </span>
-              </p>
-              <p className="text-[hsl(var(--foreground))]">
-                <span className="font-semibold">Creada el:</span>{" "}
-                {new Date(currentAppointment.createdAt).toLocaleString("es-ES")}
-              </p>
+              <h2 className="text-lg font-medium text-[hsl(var(--foreground))] mb-4">Información de la Cita</h2>
+              <div className="space-y-3">
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Paciente:</span> {getPatientName(currentAppointment)}
+                </p>
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Odontólogo:</span> {getDentistName(currentAppointment)}
+                </p>
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Especialidad:</span> {currentAppointment.odontologoId.especialidad}
+                </p>
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Fecha:</span> {formatDate(currentAppointment.fecha)}
+                </p>
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Hora:</span> {currentAppointment.hora}
+                </p>
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Motivo:</span> {currentAppointment.motivo}
+                </p>
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Estado:</span>{" "}
+                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(currentAppointment.estado)}`}>
+                    {translateStatus(currentAppointment.estado)}
+                  </span>
+                </p>
+                <p className="text-[hsl(var(--foreground))]">
+                  <span className="font-semibold">Creada el:</span>{" "}
+                  {new Date(currentAppointment.createdAt).toLocaleString("es-ES")}
+                </p>
+              </div>
             </div>
           </div>
 
           <div className="mt-6 flex space-x-4">
             <button
               onClick={() => handleEdit(currentAppointment)}
-              className="px-4 py-2 bg-amber-400 text-white rounded-md hover:bg-amber-500"
+              className="px-4 py-2 bg-amber-400 text-white rounded-md hover:bg-amber-500 transition-colors duration-200"
             >
               Editar
             </button>
             <button
               onClick={() => handleDeleteClick(currentAppointment)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200"
             >
               Eliminar
             </button>
@@ -437,7 +413,7 @@ const AppointmentManagement = () => {
           onClose={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}
           title="Eliminar Cita"
-          message={`¿Está seguro que desea eliminar la cita de ${appointmentToDelete?.pacienteNombre} programada para el ${appointmentToDelete ? formatDate(appointmentToDelete.fecha) : ""}? Esta acción no se puede deshacer.`}
+          message={`¿Está seguro que desea eliminar la cita de ${getPatientName(appointmentToDelete!)} programada para el ${appointmentToDelete ? formatDate(appointmentToDelete.fecha) : ""}? Esta acción no se puede deshacer.`}
           confirmText="Eliminar"
           cancelText="Cancelar"
           type="danger"
@@ -448,7 +424,15 @@ const AppointmentManagement = () => {
   }
 
   if (viewMode === "edit") {
-    return <AppointmentForm appointment={currentAppointment} onSave={handleSave} onCancel={handleCancel} />
+    return (
+      <AppointmentForm
+        appointment={currentAppointment}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        dentists={dentists}
+        patients={patients}
+      />
+    )
   }
 
   return (
@@ -456,6 +440,15 @@ const AppointmentManagement = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Gestión de Citas</h1>
         <div className="flex space-x-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleRefresh}
+            className="flex items-center px-3 py-2 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-md text-sm font-medium text-[hsl(var(--foreground))] hover:bg-[hsl(var(--card-hover))] transition-colors duration-200"
+          >
+            <RefreshCw className="h-4 w-4 mr-2 text-[hsl(var(--muted-foreground))]" />
+            Actualizar
+          </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -480,7 +473,7 @@ const AppointmentManagement = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleAddNew}
-            className="flex items-center px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500"
+            className="flex items-center px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500 transition-colors duration-200"
           >
             <Plus className="h-5 w-5 mr-1" />
             Nueva Cita
@@ -505,10 +498,10 @@ const AppointmentManagement = () => {
                 onChange={handleFilterChange}
                 className="w-full border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-200"
               >
-                <option>Todos</option>
+                <option value="Todos">Todos</option>
                 {dentists.map((dentist) => (
-                  <option key={dentist.id} value={dentist.id}>
-                    {dentist.nombre}
+                  <option key={dentist._id} value={dentist._id}>
+                    {dentist.nombre} {dentist.apellido}
                   </option>
                 ))}
               </select>
@@ -531,10 +524,10 @@ const AppointmentManagement = () => {
                 onChange={handleFilterChange}
                 className="w-full border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-200"
               >
-                <option>Todos</option>
-                <option>Pendiente</option>
-                <option>Completada</option>
-                <option>Cancelada</option>
+                <option value="Todos">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="completada">Completada</option>
+                <option value="cancelada">Cancelada</option>
               </select>
             </div>
           </div>
@@ -563,7 +556,7 @@ const AppointmentManagement = () => {
             </div>
             <input
               type="text"
-              placeholder="Buscar citas por paciente o motivo..."
+              placeholder="Buscar citas por paciente, odontólogo o motivo..."
               className="pl-10 pr-4 py-2 w-full border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--foreground))] rounded-md focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors duration-200"
               value={searchTerm}
               onChange={handleSearchChange}
@@ -599,59 +592,76 @@ const AppointmentManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-[hsl(var(--card))] divide-y divide-[hsl(var(--border))] transition-colors duration-200">
-              {currentAppointments.map((appointment) => (
-                <tr key={appointment.id} className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">
-                      {appointment.pacienteNombre || "Paciente temporal"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-[hsl(var(--muted-foreground))]">{formatDate(appointment.fecha)}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-[hsl(var(--muted-foreground))]">{appointment.hora}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                      {getDentistName(appointment.odontologoId)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-[hsl(var(--muted-foreground))]">{appointment.motivo}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(appointment.estado)}`}
+              {filteredAppointments
+                .map((appointment) => {
+                  // Validar que la cita tenga datos mínimos requeridos
+                  if (!appointment || !appointment._id) return null
+
+                  return (
+                    <tr
+                      key={appointment._id}
+                      className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200"
                     >
-                      {translateStatus(appointment.estado)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleView(appointment)}
-                      className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3 transition-colors duration-200"
-                      title="Ver detalles"
-                    >
-                      <Eye className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(appointment)}
-                      className="text-amber-500 hover:text-amber-600 mr-3"
-                      title="Editar"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(appointment)}
-                      className="text-red-500 hover:text-red-600"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-[hsl(var(--foreground))]">
+                          {getPatientName(appointment)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                          {appointment.fecha ? formatDate(appointment.fecha) : "Fecha no disponible"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                          {appointment.hora || "Hora no disponible"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-[hsl(var(--muted-foreground))]">{getDentistName(appointment)}</div>
+                        <div className="text-xs text-[hsl(var(--muted-foreground))]">
+                          {appointment.odontologoId?.especialidad || "Especialidad no disponible"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                          {appointment.motivo || "Sin motivo especificado"}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(appointment.estado || "pendiente")}`}
+                        >
+                          {translateStatus(appointment.estado || "pendiente")}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleView(appointment)}
+                          className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3 transition-colors duration-200"
+                          title="Ver detalles"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(appointment)}
+                          className="text-amber-500 hover:text-amber-600 mr-3 transition-colors duration-200"
+                          title="Editar"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(appointment)}
+                          className="text-red-500 hover:text-red-600 transition-colors duration-200"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
+                .filter(Boolean)}
             </tbody>
           </table>
         </div>
@@ -677,7 +687,7 @@ const AppointmentManagement = () => {
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         title="Eliminar Cita"
-        message={`¿Está seguro que desea eliminar la cita de ${appointmentToDelete?.pacienteNombre} programada para el ${appointmentToDelete ? formatDate(appointmentToDelete.fecha) : ""}? Esta acción no se puede deshacer.`}
+        message={`¿Está seguro que desea eliminar la cita de ${appointmentToDelete ? getPatientName(appointmentToDelete) : ""} programada para el ${appointmentToDelete ? formatDate(appointmentToDelete.fecha) : ""}? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"

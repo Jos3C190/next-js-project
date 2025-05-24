@@ -91,14 +91,84 @@ export interface Doctor {
 
 export interface Appointment {
   _id: string
-  pacienteId?: Patient
-  pacienteTemporalId?: Patient
-  odontologoId: Doctor
+  pacienteId?: {
+    _id: string
+    nombre: string
+    apellido: string
+    correo: string
+    telefono?: string
+  }
+  pacienteTemporalId?: {
+    _id: string
+    nombre: string
+    apellido: string
+    correo: string
+  }
+  odontologoId: {
+    _id: string
+    nombre: string
+    apellido: string
+    especialidad: string
+    correo?: string
+    telefono?: string
+  }
   fecha: string
   hora: string
   motivo: string
-  estado: string
+  estado: "pendiente" | "completada" | "cancelada"
   createdAt: string
+  __v?: number
+}
+
+export interface CreateAppointmentRequest {
+  pacienteId?: string
+  pacienteTemporalId?: string
+  odontologoId: string
+  fecha: string
+  hora: string
+  motivo: string
+}
+
+export interface UpdateAppointmentRequest {
+  pacienteId?: string
+  pacienteTemporalId?: string
+  odontologoId?: string
+  fecha?: string
+  hora?: string
+  motivo?: string
+  estado?: "pendiente" | "completada" | "cancelada"
+}
+
+export interface AppointmentsResponse {
+  data: Appointment[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface Dentist {
+  _id: string
+  nombre: string
+  apellido: string
+  correo: string
+  telefono: string
+  especialidad: string
+  fecha_nacimiento: string
+  role: string
+  __v?: number
+}
+
+export interface DentistsResponse {
+  data: Dentist[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export interface User {
@@ -287,53 +357,97 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
           ],
         } as T)
       } else if (endpoint === "/api/citas") {
+        if (method === "POST") {
+          const requestData = JSON.parse(body || "{}")
+          resolve({
+            message: "Cita creada con éxito",
+            cita: {
+              _id: "new-appointment-id",
+              ...requestData,
+              fecha: new Date(requestData.fecha).toISOString(),
+              estado: "pendiente",
+              createdAt: new Date().toISOString(),
+              __v: 0,
+            },
+          } as T)
+        } else {
+          resolve({
+            data: [
+              {
+                _id: "1",
+                pacienteId: {
+                  _id: "p1",
+                  nombre: "María",
+                  apellido: "García",
+                  correo: "maria@test.com",
+                },
+                odontologoId: {
+                  _id: "d1",
+                  nombre: "José",
+                  apellido: "López",
+                  especialidad: "Ortodoncia",
+                },
+                fecha: "2025-01-23T00:00:00.000Z",
+                hora: "10:00",
+                motivo: "Limpieza dental",
+                estado: "pendiente",
+                createdAt: "2025-01-20T10:00:00.000Z",
+              },
+            ],
+            pagination: {
+              total: 1,
+              page: 1,
+              limit: 10,
+              totalPages: 1,
+            },
+          } as T)
+        }
+      } else if (endpoint.includes("/api/citas/") && method === "PUT") {
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          message: "Cita actualizada con éxito",
+          cita: {
+            _id: endpoint.split("/").pop(),
+            ...requestData,
+            fecha: requestData.fecha ? new Date(requestData.fecha).toISOString() : undefined,
+            createdAt: "2025-01-20T10:00:00.000Z",
+            __v: 0,
+          },
+        } as T)
+      } else if (endpoint.includes("/api/citas/") && method === "DELETE") {
+        resolve({
+          message: "Cita eliminada con éxito",
+        } as T)
+      } else if (endpoint === "/odontologos") {
         resolve({
           data: [
             {
-              _id: "1",
-              pacienteId: {
-                _id: "p1",
-                nombre: "María",
-                apellido: "García",
-                correo: "maria@test.com",
-              },
-              odontologoId: {
-                _id: "d1",
-                nombre: "José",
-                apellido: "López",
-                especialidad: "Ortodoncia",
-              },
-              fecha: "2025-01-23T00:00:00.000Z",
-              hora: "10:00",
-              motivo: "Limpieza dental",
-              estado: "pendiente",
-              createdAt: "2025-01-20T10:00:00.000Z",
+              _id: "d1",
+              nombre: "José",
+              apellido: "López",
+              correo: "jose@example.com",
+              telefono: "87654321",
+              especialidad: "Ortodoncia",
+              fecha_nacimiento: "1998-06-15T00:00:00.000Z",
+              role: "odontologo",
+              __v: 0,
             },
             {
-              _id: "2",
-              pacienteId: {
-                _id: "p2",
-                nombre: "Juan",
-                apellido: "Pérez",
-                correo: "juan@test.com",
-              },
-              odontologoId: {
-                _id: "d1",
-                nombre: "José",
-                apellido: "López",
-                especialidad: "Ortodoncia",
-              },
-              fecha: "2025-01-24T00:00:00.000Z",
-              hora: "14:00",
-              motivo: "Consulta",
-              estado: "confirmada",
-              createdAt: "2025-01-20T10:00:00.000Z",
+              _id: "d2",
+              nombre: "Admin",
+              apellido: "Principal",
+              correo: "admin@example.com",
+              telefono: "1234567890",
+              especialidad: "Administración",
+              fecha_nacimiento: "1980-01-01T00:00:00.000Z",
+              role: "admin",
+              __v: 0,
             },
           ],
           pagination: {
             total: 2,
             page: 1,
-            limit: 10,
+            limit: 100,
             totalPages: 1,
           },
         } as T)
@@ -456,7 +570,29 @@ export const createDashboardApi = (token: string) => ({
     )
   },
 
-  getActivity: (limit = 10): Promise<{ activities: Activity[] }> => {
+  getActivity: async (limit = 10): Promise<{ activities: Activity[] }> => {
+    // Primero obtener el total
+    const initialResponse = await apiRequest<{ activities: Activity[]; pagination?: any }>(
+      "/api/dashboard/activity?limit=1",
+      {
+        method: "GET",
+      },
+      token,
+    )
+
+    // Si hay paginación, usar el total como límite
+    if (initialResponse.pagination?.total) {
+      const total = initialResponse.pagination.total
+      return apiRequest<{ activities: Activity[] }>(
+        `/api/dashboard/activity?limit=${total}`,
+        {
+          method: "GET",
+        },
+        token,
+      )
+    }
+
+    // Si no hay paginación o es modo dev, usar el límite original
     return apiRequest<{ activities: Activity[] }>(
       `/api/dashboard/activity?limit=${limit}`,
       {
@@ -466,14 +602,29 @@ export const createDashboardApi = (token: string) => ({
     )
   },
 
-  getAllAppointments: (): Promise<{ data: Appointment[]; pagination: any }> => {
-    return apiRequest<{ data: Appointment[]; pagination: any }>(
-      "/api/citas",
+  getAllAppointments: async (): Promise<{ data: Appointment[]; pagination: any }> => {
+    // Primero obtener el total
+    const initialResponse = await apiRequest<{ data: Appointment[]; pagination: any }>(
+      "/api/citas?page=1&limit=1",
       {
         method: "GET",
       },
       token,
     )
+
+    // Usar el total como límite para obtener todos los datos
+    const total = initialResponse.pagination.total
+    if (total > 1) {
+      return apiRequest<{ data: Appointment[]; pagination: any }>(
+        `/api/citas?limit=${total}`,
+        {
+          method: "GET",
+        },
+        token,
+      )
+    }
+
+    return initialResponse
   },
 })
 
@@ -526,6 +677,77 @@ export const createPatientsApi = (token: string) => ({
       `/pacientes/${id}`,
       {
         method: "DELETE",
+      },
+      token,
+    )
+  },
+})
+
+// API de citas
+export const createAppointmentsApi = (token: string) => ({
+  getAppointments: (page = 1, limit = 10): Promise<AppointmentsResponse> => {
+    return apiRequest<AppointmentsResponse>(
+      `/api/citas?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  getAppointmentById: (id: string): Promise<Appointment> => {
+    return apiRequest<Appointment>(
+      `/api/citas/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  createAppointment: (appointmentData: CreateAppointmentRequest): Promise<{ message: string; cita: Appointment }> => {
+    return apiRequest<{ message: string; cita: Appointment }>(
+      "/api/citas",
+      {
+        method: "POST",
+        body: JSON.stringify(appointmentData),
+      },
+      token,
+    )
+  },
+
+  updateAppointment: (
+    id: string,
+    appointmentData: UpdateAppointmentRequest,
+  ): Promise<{ message: string; cita: Appointment }> => {
+    return apiRequest<{ message: string; cita: Appointment }>(
+      `/api/citas/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(appointmentData),
+      },
+      token,
+    )
+  },
+
+  deleteAppointment: (id: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(
+      `/api/citas/${id}`,
+      {
+        method: "DELETE",
+      },
+      token,
+    )
+  },
+})
+
+// API de odontólogos
+export const createDentistsApi = (token: string) => ({
+  getDentists: (page = 1, limit = 100): Promise<DentistsResponse> => {
+    return apiRequest<DentistsResponse>(
+      `/odontologos?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
       },
       token,
     )
