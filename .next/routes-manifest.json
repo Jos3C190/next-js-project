@@ -40,6 +40,12 @@
       "namedRegex": "^/dashboard/appointments(?:/)?$"
     },
     {
+      "page": "/dashboard/my-appointments",
+      "regex": "^/dashboard/my\\-appointments(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/my\\-appointments(?:/)?$"
+    },
+    {
       "page": "/dashboard/patients",
       "regex": "^/dashboard/patients(?:/)?$",
       "routeKeys": {},

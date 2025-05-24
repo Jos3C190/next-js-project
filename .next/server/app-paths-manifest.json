@@ -1,13 +1,14 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
-  "/dashboard/appointments/page": "app/dashboard/appointments/page.js",
-  "/dashboard/records/page": "app/dashboard/records/page.js",
+  "/dashboard/my-appointments/page": "app/dashboard/my-appointments/page.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/appointments/page": "app/dashboard/appointments/page.js",
   "/dashboard/patients/page": "app/dashboard/patients/page.js",
-  "/dashboard/payments/page": "app/dashboard/payments/page.js",
-  "/dashboard/treatments/page": "app/dashboard/treatments/page.js",
+  "/dashboard/records/page": "app/dashboard/records/page.js",
   "/dashboard/reports/page": "app/dashboard/reports/page.js",
+  "/dashboard/payments/page": "app/dashboard/payments/page.js",
   "/dashboard/statistics/page": "app/dashboard/statistics/page.js",
+  "/dashboard/treatments/page": "app/dashboard/treatments/page.js",
   "/dashboard/users/page": "app/dashboard/users/page.js"
 }

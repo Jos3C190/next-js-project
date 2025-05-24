@@ -139,6 +139,13 @@ export interface UpdateAppointmentRequest {
   estado?: "pendiente" | "completada" | "cancelada"
 }
 
+// Nuevo tipo para citas de pacientes (simplificado)
+export interface CreatePatientAppointmentRequest {
+  fecha: string
+  hora: string
+  motivo: string
+}
+
 export interface AppointmentsResponse {
   data: Appointment[]
   pagination: {
@@ -471,6 +478,12 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
               fecha: new Date(requestData.fecha).toISOString(),
               estado: "pendiente",
               createdAt: new Date().toISOString(),
+              odontologoId: {
+                _id: "d1",
+                nombre: "José",
+                apellido: "López",
+                especialidad: "Ortodoncia",
+              },
               __v: 0,
             },
           } as T)
@@ -491,21 +504,49 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
                   apellido: "López",
                   especialidad: "Ortodoncia",
                 },
-                fecha: "2025-01-23T00:00:00.000Z",
+                fecha: "2025-01-25T00:00:00.000Z",
                 hora: "10:00",
                 motivo: "Limpieza dental",
                 estado: "pendiente",
                 createdAt: "2025-01-20T10:00:00.000Z",
               },
+              {
+                _id: "2",
+                pacienteId: {
+                  _id: "p1",
+                  nombre: "María",
+                  apellido: "García",
+                  correo: "maria@test.com",
+                },
+                odontologoId: {
+                  _id: "d1",
+                  nombre: "José",
+                  apellido: "López",
+                  especialidad: "Ortodoncia",
+                },
+                fecha: "2025-01-30T00:00:00.000Z",
+                hora: "14:30",
+                motivo: "Revisión de ortodoncia",
+                estado: "pendiente",
+                createdAt: "2025-01-22T10:00:00.000Z",
+              },
             ],
             pagination: {
-              total: 1,
+              total: 2,
               page: 1,
               limit: 10,
               totalPages: 1,
             },
           } as T)
         }
+      } else if (endpoint.includes("/api/citas/") && endpoint.includes("/cancelar") && method === "PATCH") {
+        resolve({
+          message: "Cita cancelada con éxito",
+          cita: {
+            _id: endpoint.split("/")[3],
+            estado: "cancelada",
+          },
+        } as T)
       } else if (endpoint.includes("/api/citas/") && method === "PUT") {
         const requestData = JSON.parse(body || "{}")
         resolve({
@@ -1148,29 +1189,39 @@ export const createMedicalRecordsApi = (token: string) => ({
   },
 
   getAllPatients: async (): Promise<{ data: Patient[] }> => {
-    // Primero obtener el total
-    const initialResponse = await apiRequest<PatientsResponse>(
-      "/pacientes?page=1&limit=1",
-      {
-        method: "GET",
-      },
-      token,
-    )
-
-    // Usar el total como límite para obtener todos los pacientes
-    const total = initialResponse.pagination.total
-    if (total > 1) {
-      const allPatientsResponse = await apiRequest<PatientsResponse>(
-        `/pacientes?limit=${total}`,
+    try {
+      // Primero obtener el total
+      const initialResponse = await apiRequest<PatientsResponse>(
+        "/pacientes?page=1&limit=1",
         {
           method: "GET",
         },
         token,
       )
-      return { data: allPatientsResponse.data }
-    }
 
-    return { data: initialResponse.data }
+      // Validar que la respuesta tenga la estructura esperada
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        return { data: Array.isArray(initialResponse?.data) ? initialResponse.data : [] }
+      }
+
+      // Usar el total como límite para obtener todos los pacientes
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allPatientsResponse = await apiRequest<PatientsResponse>(
+          `/pacientes?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return { data: Array.isArray(allPatientsResponse?.data) ? allPatientsResponse.data : [] }
+      }
+
+      return { data: Array.isArray(initialResponse.data) ? initialResponse.data : [] }
+    } catch (error) {
+      console.error("Error loading patients:", error)
+      return { data: [] }
+    }
   },
 })
 
@@ -1326,5 +1377,44 @@ export const createTreatmentsApi = (token: string) => ({
       console.error("Error loading dentists:", error)
       return { data: [] }
     }
+  },
+})
+
+// API específica para pacientes (sus propias citas)
+export const createPatientAppointmentsApi = (token: string) => ({
+  // Obtener las citas del paciente autenticado
+  getMyAppointments: (page = 1, limit = 10): Promise<AppointmentsResponse> => {
+    return apiRequest<AppointmentsResponse>(
+      `/api/citas?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  // Crear una nueva cita (solo fecha, hora y motivo)
+  createMyAppointment: (
+    appointmentData: CreatePatientAppointmentRequest,
+  ): Promise<{ message: string; cita: Appointment }> => {
+    return apiRequest<{ message: string; cita: Appointment }>(
+      "/api/citas",
+      {
+        method: "POST",
+        body: JSON.stringify(appointmentData),
+      },
+      token,
+    )
+  },
+
+  // Cancelar una cita específica
+  cancelMyAppointment: (id: string): Promise<{ message: string; cita: Appointment }> => {
+    return apiRequest<{ message: string; cita: Appointment }>(
+      `/api/citas/${id}/cancelar`,
+      {
+        method: "PATCH",
+      },
+      token,
+    )
   },
 })

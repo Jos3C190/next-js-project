@@ -12,12 +12,15 @@ type User = {
   role: string
   telefono?: string
   especialidad?: string
+  direccion?: string
+  fecha_nacimiento?: string
 }
 
 type AuthContextType = {
   isAuthenticated: boolean
   user: User | null
   token: string | null
+  userRole: string | null
   login: (credentials: { correo: string; password: string }) => Promise<boolean>
   logout: () => void
   register: (userData: {
@@ -32,6 +35,7 @@ type AuthContextType = {
   isLoading: boolean
   error: string | null
   isHydrated: boolean
+  hasAccess: (module: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -39,10 +43,28 @@ const AuthContext = createContext<AuthContextType | null>(null)
 const TOKEN_KEY = "auth_token"
 const USER_KEY = "auth_user"
 
+// Definir permisos por rol
+const ROLE_PERMISSIONS = {
+  admin: [
+    "dashboard",
+    "patients",
+    "appointments",
+    "records",
+    "treatments",
+    "payments",
+    "users",
+    "reports",
+    "statistics",
+  ],
+  odontologo: ["dashboard", "patients", "appointments", "records", "treatments"],
+  paciente: ["my-appointments"],
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
@@ -65,8 +87,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Verificar si el token es válido
           try {
             await authApi.verify(storedToken)
+            const userData = JSON.parse(storedUser)
             setToken(storedToken)
-            setUser(JSON.parse(storedUser))
+            setUser(userData)
+            setUserRole(userData.role)
             setIsAuthenticated(true)
             console.log("✅ Sesión restaurada correctamente")
           } catch (error) {
@@ -77,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsAuthenticated(false)
             setUser(null)
             setToken(null)
+            setUserRole(null)
           }
         } else {
           console.log("ℹ️ No hay sesión guardada")
@@ -108,10 +133,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role: response.role,
         telefono: response.user.telefono,
         especialidad: response.user.especialidad,
+        direccion: response.user.direccion,
+        fecha_nacimiento: response.user.fecha_nacimiento,
       }
 
       setToken(response.token)
       setUser(userData)
+      setUserRole(response.role)
       setIsAuthenticated(true)
 
       // Guardar en localStorage solo en el cliente
@@ -158,6 +186,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsAuthenticated(false)
     setUser(null)
     setToken(null)
+    setUserRole(null)
 
     // Limpiar localStorage solo en el cliente
     if (isHydrated) {
@@ -168,18 +197,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log("✅ Logout exitoso")
   }
 
+  // Función para verificar si el usuario tiene acceso a un módulo
+  const hasAccess = (module: string): boolean => {
+    if (!userRole) return false
+    const permissions = ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS] || []
+    return permissions.includes(module)
+  }
+
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
         user,
         token,
+        userRole,
         login,
         logout,
         register,
         isLoading,
         error,
         isHydrated,
+        hasAccess,
       }}
     >
       {children}

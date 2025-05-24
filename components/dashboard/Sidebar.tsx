@@ -15,6 +15,7 @@ import {
   UserCog,
   FileText,
   BarChart,
+  CalendarCheck,
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
@@ -29,29 +30,40 @@ interface NavigationItem {
   name: string
   icon: React.ElementType
   path: string
+  module: string
   disabled?: boolean
 }
 
 const navigation: NavigationItem[] = [
-  { name: "Panel Principal", icon: Home, path: "/dashboard" },
-  { name: "Pacientes", icon: Users, path: "/dashboard/patients" },
-  { name: "Citas", icon: Calendar, path: "/dashboard/appointments" },
-  { name: "Expedientes", icon: FolderOpen, path: "/dashboard/records" },
-  { name: "Tratamientos", icon: Stethoscope, path: "/dashboard/treatments" },
-  { name: "Pagos y Facturación", icon: CreditCard, path: "/dashboard/payments", disabled: true },
-  { name: "Usuarios", icon: UserCog, path: "/dashboard/users", disabled: true },
-  { name: "Reportes", icon: FileText, path: "/dashboard/reports", disabled: true },
-  { name: "Estadísticas", icon: BarChart, path: "/dashboard/statistics", disabled: true },
+  { name: "Panel Principal", icon: Home, path: "/dashboard", module: "dashboard" },
+  { name: "Pacientes", icon: Users, path: "/dashboard/patients", module: "patients" },
+  { name: "Citas", icon: Calendar, path: "/dashboard/appointments", module: "appointments" },
+  { name: "Expedientes", icon: FolderOpen, path: "/dashboard/records", module: "records" },
+  { name: "Tratamientos", icon: Stethoscope, path: "/dashboard/treatments", module: "treatments" },
+  { name: "Pagos y Facturación", icon: CreditCard, path: "/dashboard/payments", module: "payments", disabled: true },
+  { name: "Usuarios", icon: UserCog, path: "/dashboard/users", module: "users", disabled: true },
+  { name: "Reportes", icon: FileText, path: "/dashboard/reports", module: "reports", disabled: true },
+  { name: "Estadísticas", icon: BarChart, path: "/dashboard/statistics", module: "statistics", disabled: true },
+  // Módulo específico para pacientes
+  { name: "Mis Citas", icon: CalendarCheck, path: "/dashboard/my-appointments", module: "my-appointments" },
 ]
 
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
-  const { logout } = useAuth()
+  const { logout, hasAccess, userRole } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
+  // Filtrar navegación según permisos del usuario
+  const filteredNavigation = navigation.filter((item) => {
+    // Si el módulo está deshabilitado, solo mostrarlo para admin
+    if (item.disabled && userRole !== "admin") {
+      return false
+    }
+    return hasAccess(item.module)
+  })
+
   // Determinar el módulo activo directamente basado en la ruta actual
   const getActiveModuleFromPath = (path: string) => {
-    // Ordenamos de más específico a menos específico para evitar coincidencias parciales
     if (path === "/dashboard") return "Panel Principal"
     if (path.startsWith("/dashboard/patients")) return "Pacientes"
     if (path.startsWith("/dashboard/appointments")) return "Citas"
@@ -61,6 +73,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
     if (path.startsWith("/dashboard/users")) return "Usuarios"
     if (path.startsWith("/dashboard/reports")) return "Reportes"
     if (path.startsWith("/dashboard/statistics")) return "Estadísticas"
+    if (path.startsWith("/dashboard/my-appointments")) return "Mis Citas"
     return "Panel Principal" // Default
   }
 
@@ -73,7 +86,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
   }
 
   const handleNavigation = (item: NavigationItem) => {
-    if (item.disabled) return
+    if (item.disabled && userRole !== "admin") return
 
     router.push(item.path)
     if (window.innerWidth < 768) {
@@ -118,13 +131,13 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
         {/* Navigation */}
         <div className="flex-1 flex flex-col overflow-y-auto pt-5 pb-4 bg-[hsl(var(--sidebar-bg))]">
           <nav className="mt-2 flex-1 px-3 space-y-2">
-            {navigation.map((item) => (
+            {filteredNavigation.map((item) => (
               <button
                 key={item.name}
                 onClick={() => handleNavigation(item)}
-                disabled={item.disabled}
+                disabled={item.disabled && userRole !== "admin"}
                 className={`group flex items-center justify-between w-full px-3 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                  item.disabled
+                  item.disabled && userRole !== "admin"
                     ? "text-gray-400 cursor-not-allowed opacity-50"
                     : activeModule === item.name
                       ? "bg-red-400 text-gray-900"
@@ -134,7 +147,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
                 <div className="flex items-center">
                   <item.icon
                     className={`mr-3 h-5 w-5 ${
-                      item.disabled
+                      item.disabled && userRole !== "admin"
                         ? "text-gray-400"
                         : activeModule === item.name
                           ? "text-gray-900"
@@ -143,7 +156,9 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
                   />
                   {item.name}
                 </div>
-                {activeModule === item.name && !item.disabled && <ChevronRight className="h-4 w-4 text-gray-900" />}
+                {activeModule === item.name && !(item.disabled && userRole !== "admin") && (
+                  <ChevronRight className="h-4 w-4 text-gray-900" />
+                )}
               </button>
             ))}
           </nav>
