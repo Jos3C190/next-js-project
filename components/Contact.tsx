@@ -4,7 +4,7 @@ import MapaGoo from "./MapaGoo"
 
 const Contact = () => {
   return (
-    <section id="Contactanos" className="py-10 px-4 md:px-52 w-full mx-auto">
+    <section id="Contactanos" className="py-10 px-4 md:px-52 w-full mx-auto bg-white">
       <h2 className="text-3xl font-bold text-center text-gray-700 mb-6 tracking-widest">CONTÁCTANOS</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div data-aos="fade-left">

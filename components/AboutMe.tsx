@@ -11,7 +11,7 @@ const AboutMe = () => {
   }, [])
 
   return (
-    <section id="SobreMi" className="py-10 px-4 md:px-52 w-full mx-auto">
+    <section id="SobreMi" className="py-10 px-4 md:px-52 w-full mx-auto bg-white">
       <div className="grid grid-cols-1 md:grid-cols-2 items-center">
         <div
           className={`${isClient ? "animate-fade-in" : ""} h-full w-full`}

@@ -5,7 +5,7 @@ import tiposMordida from "@/data/tiposMordida"
 
 const TiposMordida = () => {
   return (
-    <section id="TiposDeMordidas" className="py-10 px-5 justify-items-center">
+    <section id="TiposDeMordidas" className="py-10 px-5 justify-items-center bg-white">
       <h2 className="text-3xl font-bold text-center text-gray-800 mb-8 tracking-widest">TIPOS DE MORDIDA</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8 text-center gap-6 max-w-screen-lg">
