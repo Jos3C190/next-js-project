@@ -443,30 +443,42 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
           ],
         } as T)
       } else if (endpoint.includes("/api/dashboard/activity")) {
-        resolve({
-          activities: [
-            {
-              _id: "1",
-              type: "cita",
-              action: "created",
-              description: "Nueva cita programada para María García",
-              userId: "u1",
-              userRole: "Paciente",
-              userName: "María García",
-              timestamp: new Date().toISOString(),
+        // Simular paginación para actividades
+        const urlParams = new URLSearchParams(endpoint.split("?")[1] || "")
+        const page = Number.parseInt(urlParams.get("page") || "1")
+        const limit = Number.parseInt(urlParams.get("limit") || "10")
+
+        const allActivities: Activity[] = []
+
+        const total = allActivities.length
+        const totalPages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit
+        const endIndex = startIndex + limit
+        const data = allActivities.slice(startIndex, endIndex)
+
+        if (limit === 1) {
+          // Para la primera llamada que solo quiere obtener el total
+          resolve({
+            activities: data,
+            pagination: {
+              total,
+              page,
+              limit,
+              totalPages,
             },
-            {
-              _id: "2",
-              type: "tratamiento",
-              action: "completed",
-              description: "Tratamiento de ortodoncia completado",
-              userId: "u2",
-              userRole: "Doctor",
-              userName: "Dr. López",
-              timestamp: new Date(Date.now() - 3600000).toISOString(),
+          } as T)
+        } else {
+          // Para las llamadas normales
+          resolve({
+            data,
+            pagination: {
+              total,
+              page,
+              limit,
+              totalPages,
             },
-          ],
-        } as T)
+          } as T)
+        }
       } else if (endpoint === "/api/citas") {
         if (method === "POST") {
           const requestData = JSON.parse(body || "{}")
@@ -904,6 +916,21 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
         resolve({
           message: "Tratamiento eliminado con éxito",
         } as T)
+      } else if (endpoint === "/api/auth/register") {
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          message: "Usuario registrado exitosamente",
+          usuario: {
+            _id: "new-user-id",
+            nombre: requestData.nombre,
+            apellido: requestData.apellido,
+            correo: requestData.correo,
+            telefono: requestData.telefono,
+            direccion: requestData.direccion,
+            fecha_nacimiento: requestData.fecha_nacimiento,
+            role: "paciente",
+          },
+        } as T)
       }
 
       // Respuesta por defecto
@@ -961,29 +988,8 @@ export const createDashboardApi = (token: string) => ({
     )
   },
 
-  getActivity: async (limit = 10): Promise<{ activities: Activity[] }> => {
-    // Primero obtener el total
-    const initialResponse = await apiRequest<{ activities: Activity[]; pagination?: any }>(
-      "/api/dashboard/activity?limit=1",
-      {
-        method: "GET",
-      },
-      token,
-    )
-
-    // Si hay paginación, usar el total como límite
-    if (initialResponse.pagination?.total) {
-      const total = initialResponse.pagination.total
-      return apiRequest<{ activities: Activity[] }>(
-        `/api/dashboard/activity?limit=${total}`,
-        {
-          method: "GET",
-        },
-        token,
-      )
-    }
-
-    // Si no hay paginación o es modo dev, usar el límite original
+  getActivity: async (limit = 5): Promise<{ activities: Activity[] }> => {
+    // Para el dashboard principal, solo obtener las primeras 5 actividades
     return apiRequest<{ activities: Activity[] }>(
       `/api/dashboard/activity?limit=${limit}`,
       {

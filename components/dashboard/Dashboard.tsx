@@ -1,22 +1,16 @@
 "use client"
-
-import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Calendar, Users, Clock, Activity, AlertCircle, DollarSign, RefreshCw } from "lucide-react"
+import { Calendar, Users, Activity, AlertCircle, DollarSign, RefreshCw, Clock } from "lucide-react"
 import { useDashboardData } from "@/hooks/useDashboardData"
 import { useAuth } from "@/context/AuthContext"
 import StatCard from "./widgets/StatCard"
 import RecentActivity from "./widgets/RecentActivity"
 import AppointmentCalendar from "./widgets/AppointmentCalendar"
 import RevenueChart from "./widgets/RevenueChart"
-import Link from "next/link"
 
 const Dashboard = () => {
   const { user } = useAuth()
-  const { stats, recentAppointments, activities, appointments, isLoading, error, refreshData, isReady } =
-    useDashboardData()
-
-  const [showAlert, setShowAlert] = useState(true)
+  const { stats, activities, appointments, isLoading, error, refreshData, isReady } = useDashboardData()
 
   // Mostrar skeleton solo durante la carga inicial
   if (!isReady) {
@@ -43,46 +37,12 @@ const Dashboard = () => {
     },
   }
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case "completada":
-        return "bg-green-100 text-green-800"
-      case "pendiente":
-        return "bg-blue-100 text-blue-800"
-      case "cancelada":
-        return "bg-red-100 text-red-800"
-      case "Alerta":
-        return "bg-amber-100 text-amber-800 border-amber-200"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const translateStatus = (status: string) => {
-    switch (status) {
-      case "completada":
-        return "Completada"
-      case "pendiente":
-        return "Pendiente"
-      case "cancelada":
-        return "Cancelada"
-      default:
-        return status
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })
-  }
-
-  // Calcular si hay citas para hoy
+  // Calcular citas de hoy desde el calendario
   const today = new Date().toISOString().split("T")[0]
-  const appointmentsToday = recentAppointments.filter((apt) => apt.fecha === today).length
+  const appointmentsToday = appointments.filter((apt) => {
+    const aptDate = new Date(apt.fecha).toISOString().split("T")[0]
+    return aptDate === today && apt.estado === "pendiente"
+  }).length
 
   return (
     <div className="space-y-6">
@@ -110,30 +70,6 @@ const Dashboard = () => {
       </div>
 
       <AnimatePresence>
-        {/* Alerta de citas pendientes */}
-        {showAlert && appointmentsToday > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={`p-4 rounded-md flex justify-between items-center ${getStatusClass("Alerta")}`}
-          >
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-amber-500 mr-3" />
-              <p className="text-amber-800">
-                Tienes {appointmentsToday} cita{appointmentsToday > 1 ? "s" : ""} pendiente
-                {appointmentsToday > 1 ? "s" : ""} para hoy.{" "}
-                <a href="/dashboard/appointments" className="font-medium underline text-amber-800 hover:text-amber-900">
-                  Ver citas
-                </a>
-              </p>
-            </div>
-            <button onClick={() => setShowAlert(false)} className="text-amber-500 hover:text-amber-700">
-              &times;
-            </button>
-          </motion.div>
-        )}
-
         {/* Error de estadísticas */}
         {error && (
           <motion.div
@@ -155,13 +91,21 @@ const Dashboard = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5"
       >
         <motion.div variants={itemVariants}>
           <StatCard
             title="Pacientes Activos"
             value={stats?.totalPatients?.toString() || "0"}
             icon={<Users className="h-6 w-6 text-red-400" />}
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <StatCard
+            title="Citas Hoy"
+            value={stats?.appointmentsToday?.toString() || "0"}
+            icon={<Clock className="h-6 w-6 text-blue-400" />}
           />
         </motion.div>
 
@@ -185,7 +129,7 @@ const Dashboard = () => {
           <StatCard
             title="Ingresos del Mes"
             value={`$${stats?.revenueThisMonth?.toLocaleString() || "0"}`}
-            icon={<DollarSign className="h-6 w-6 text-blue-500" />}
+            icon={<DollarSign className="h-6 w-6 text-purple-500" />}
           />
         </motion.div>
       </motion.div>
@@ -207,86 +151,6 @@ const Dashboard = () => {
           <RevenueChart />
         </motion.div>
       </div>
-
-      {/* Próximas citas con datos reales */}
-      <motion.div
-        variants={itemVariants}
-        initial="hidden"
-        animate="visible"
-        className="bg-[hsl(var(--card))] transition-colors duration-200 rounded-lg shadow-md p-6"
-      >
-        <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-4 flex items-center">
-          <Clock className="h-5 w-5 mr-2 text-red-400" />
-          Próximas Citas
-        </h3>
-
-        {recentAppointments.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-[hsl(var(--border))]">
-              <thead className="bg-[hsl(var(--secondary))]">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                    Paciente
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                    Hora
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                    Motivo
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                    Estado
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-[hsl(var(--card))] divide-y divide-[hsl(var(--border))]">
-                {recentAppointments.slice(0, 3).map((appointment) => (
-                  <tr key={appointment.id} className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-[hsl(var(--foreground))]">
-                        {appointment.pacienteNombre}
-                      </div>
-                      <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                        Dr. {appointment.odontologoNombre}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-[hsl(var(--muted-foreground))]">{formatDate(appointment.fecha)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-[hsl(var(--muted-foreground))]">{appointment.hora}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-[hsl(var(--muted-foreground))]">{appointment.motivo}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span
-                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(appointment.estado)}`}
-                      >
-                        {translateStatus(appointment.estado)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-[hsl(var(--muted-foreground))] text-center py-4">No hay citas recientes</p>
-        )}
-
-        <div className="mt-4 text-right">
-          <Link
-            href="/dashboard/appointments"
-            className="text-sm font-medium text-red-400 hover:text-red-500 transition-colors duration-200"
-          >
-            Ver todas las citas →
-          </Link>
-        </div>
-      </motion.div>
     </div>
   )
 }
@@ -307,8 +171,8 @@ const DashboardSkeleton = () => {
       </div>
 
       {/* Stats Cards Skeleton */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+        {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-200">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-4 animate-pulse"></div>
             <div className="h-8 bg-gray-200 rounded w-1/2 animate-pulse"></div>

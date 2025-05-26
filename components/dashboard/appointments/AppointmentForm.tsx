@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Save, X, ArrowLeft, AlertCircle } from "lucide-react"
 import type { Appointment, Dentist, Patient } from "@/lib/api"
+import { useAuth } from "@/context/AuthContext"
 
 interface AppointmentFormProps {
   appointment?: Appointment | null
@@ -17,11 +18,13 @@ interface AppointmentFormProps {
 
 const AppointmentForm = ({ appointment, onSave, onCancel, dentists, patients }: AppointmentFormProps) => {
   const today = new Date().toISOString().split("T")[0] // Formato YYYY-MM-DD
+  const { user, userRole } = useAuth()
+  const isOdontologo = userRole === "odontologo"
 
   const [formData, setFormData] = useState({
     pacienteId: "",
     pacienteNombre: "",
-    odontologoId: "",
+    odontologoId: isOdontologo ? user?.id || "" : dentists.length > 0 ? dentists[0]._id : "",
     fecha: "",
     hora: "",
     motivo: "",
@@ -54,14 +57,14 @@ const AppointmentForm = ({ appointment, onSave, onCancel, dentists, patients }: 
       setFormData({
         pacienteId: "",
         pacienteNombre: "",
-        odontologoId: dentists.length > 0 ? dentists[0]._id : "",
+        odontologoId: isOdontologo ? user?.id || "" : dentists.length > 0 ? dentists[0]._id : "",
         fecha: today,
         hora: "09:00",
         motivo: "",
         estado: "pendiente",
       })
     }
-  }, [appointment, today, dentists])
+  }, [appointment, today, dentists, isOdontologo, user])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -257,8 +260,15 @@ const AppointmentForm = ({ appointment, onSave, onCancel, dentists, patients }: 
                     ? `${appointment.odontologoId.nombre} ${appointment.odontologoId.apellido} - ${appointment.odontologoId.especialidad}`
                     : "Odontólogo no disponible"}
                 </div>
+              ) : isOdontologo ? (
+                // Modo creación para odontólogo: mostrar su propio nombre (no editable)
+                <div className="w-full px-3 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] rounded-md opacity-75">
+                  {user
+                    ? `${user.nombre} ${user.apellido}${user.especialidad ? ` - ${user.especialidad}` : ""}`
+                    : "Cargando..."}
+                </div>
               ) : (
-                // Modo creación: dropdown de odontólogos
+                // Modo creación para admin: dropdown de odontólogos
                 <select
                   id="odontologoId"
                   name="odontologoId"
@@ -282,6 +292,11 @@ const AppointmentForm = ({ appointment, onSave, onCancel, dentists, patients }: 
               {appointment && (
                 <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
                   El odontólogo no se puede modificar en edición
+                </p>
+              )}
+              {isOdontologo && !appointment && (
+                <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                  Las citas se asignan automáticamente a tu perfil
                 </p>
               )}
               {errors.odontologoId && <p className="mt-1 text-sm text-red-500">{errors.odontologoId}</p>}

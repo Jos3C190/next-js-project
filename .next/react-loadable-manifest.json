@@ -12,7 +12,7 @@
     "id": 9064,
     "files": [
       "static/chunks/766-dffdce1631f1efec.js",
-      "static/chunks/64.282d6242cdfca28a.js"
+      "static/chunks/64.f6f2f5bb724513b6.js"
     ]
   },
   "components\\AosInitializer.tsx -> aos": {
@@ -39,7 +39,7 @@
     "id": 7424,
     "files": [
       "static/chunks/644.f702be830f458b8f.js",
-      "static/chunks/424.0e38140c864562e6.js"
+      "static/chunks/424.6d9ceeffcfa76925.js"
     ]
   },
   "node_modules\\next\\dist\\client\\index.js -> ../pages/_app": {

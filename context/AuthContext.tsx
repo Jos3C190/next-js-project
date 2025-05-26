@@ -171,11 +171,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null)
     try {
       setIsLoading(true)
-      await authApi.register(userData)
+      const response = await authApi.register(userData)
+      console.log("✅ Registro exitoso:", response.message)
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error de registro:", error)
-      setError("Error al registrar. Por favor, inténtelo de nuevo.")
+      setError(error.message || "Error al registrar. Por favor, inténtelo de nuevo.")
       return false
     } finally {
       setIsLoading(false)

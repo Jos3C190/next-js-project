@@ -21,7 +21,7 @@ function normalizeText(text: string): string {
 }
 
 const PatientManagement = () => {
-  const { isAuthenticated, isHydrated, token } = useAuth()
+  const { isAuthenticated, isHydrated, token, userRole } = useAuth()
   const [patients, setPatients] = useState<Patient[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [currentPatient, setCurrentPatient] = useState<Patient | null>(null)
@@ -397,15 +397,17 @@ const PatientManagement = () => {
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleDeleteClick(currentPatient)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar
-            </motion.button>
+            {userRole !== "odontologo" && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleDeleteClick(currentPatient)}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </motion.button>
+            )}
           </div>
         </motion.div>
 
@@ -467,15 +469,17 @@ const PatientManagement = () => {
               </span>
             )}
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleAddNew}
-            className="flex items-center px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500"
-          >
-            <Plus className="h-5 w-5 mr-1" />
-            Nuevo Paciente
-          </motion.button>
+          {userRole !== "odontologo" && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleAddNew}
+              className="flex items-center px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500"
+            >
+              <Plus className="h-5 w-5 mr-1" />
+              Nuevo Paciente
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -616,15 +620,17 @@ const PatientManagement = () => {
                       >
                         <Edit className="h-5 w-5" />
                       </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.2 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDeleteClick(patient)}
-                        className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </motion.button>
+                      {userRole !== "odontologo" && (
+                        <motion.button
+                          whileHover={{ scale: 1.2 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDeleteClick(patient)}
+                          className="text-red-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </motion.button>
+                      )}
                     </div>
                   </td>
                 </motion.tr>

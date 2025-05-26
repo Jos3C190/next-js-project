@@ -43,12 +43,36 @@ const LoginModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   const handleRegisterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
+    // Validar que todos los campos estén llenos
+    if (
+      !formData.correo ||
+      !formData.password ||
+      !formData.nombre ||
+      !formData.apellido ||
+      !formData.telefono ||
+      !formData.direccion ||
+      !formData.fecha_nacimiento
+    ) {
+      alert("Por favor, complete todos los campos")
+      return
+    }
+
     const success = await register(formData)
 
     if (success) {
       // Mostrar mensaje de éxito y cambiar a login
       alert("Registro exitoso. Ahora puede iniciar sesión.")
       setIsRegistering(false)
+      // Limpiar el formulario
+      setFormData({
+        correo: "",
+        password: "",
+        nombre: "",
+        apellido: "",
+        telefono: "",
+        direccion: "",
+        fecha_nacimiento: "",
+      })
     }
   }
 
@@ -174,7 +198,7 @@ const LoginModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               <input
                 type="email"
                 required
-                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 text-gray-900"
                 placeholder="correo@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -186,7 +210,7 @@ const LoginModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               <input
                 type="password"
                 required
-                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 text-gray-900"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
