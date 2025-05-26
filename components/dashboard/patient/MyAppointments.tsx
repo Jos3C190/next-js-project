@@ -150,10 +150,10 @@ export default function MyAppointments() {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-[hsl(var(--muted))] rounded w-1/4 mb-6"></div>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-gray-200 rounded"></div>
+              <div key={i} className="h-20 bg-[hsl(var(--muted))] rounded"></div>
             ))}
           </div>
         </div>
@@ -164,10 +164,10 @@ export default function MyAppointments() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mis Citas</h1>
+        <h1 className="text-2xl font-bold text-[hsl(var(--foreground))]">Mis Citas</h1>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="bg-red-400 text-white px-4 py-2 rounded-lg hover:bg-red-500 transition-colors duration-200"
         >
           Nueva Cita
         </button>
@@ -176,24 +176,24 @@ export default function MyAppointments() {
       {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
       {/* Filtros */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div className="bg-[hsl(var(--card))] p-4 rounded-lg shadow-md mb-6 transition-colors duration-200">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+            <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">Buscar</label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por motivo o fecha..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+            <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">Estado</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
             >
               <option value="todas">Todas</option>
               <option value="pendiente">Pendientes</option>
@@ -209,23 +209,28 @@ export default function MyAppointments() {
       <div className="space-y-4">
         {filteredAppointments.length === 0 ? (
           <div className="text-center py-8">
-            <div className="bg-white rounded-lg shadow p-8">
-              <div className="text-gray-400 text-6xl mb-4">📅</div>
-              <p className="text-gray-500 text-lg mb-2">No tienes citas registradas</p>
-              <p className="text-gray-400 text-sm">Programa tu primera cita haciendo clic en "Nueva Cita"</p>
+            <div className="bg-[hsl(var(--card))] rounded-lg shadow-md p-8 transition-colors duration-200">
+              <div className="text-[hsl(var(--muted-foreground))] text-6xl mb-4">📅</div>
+              <p className="text-[hsl(var(--muted-foreground))] text-lg mb-2">No tienes citas registradas</p>
+              <p className="text-[hsl(var(--muted-foreground))] text-sm">
+                Programa tu primera cita haciendo clic en "Nueva Cita"
+              </p>
             </div>
           </div>
         ) : (
           filteredAppointments.map((appointment) => (
-            <div key={appointment._id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+            <div
+              key={appointment._id}
+              className="bg-[hsl(var(--card))] p-6 rounded-lg shadow-md hover:shadow-md transition-shadow transition-colors duration-200"
+            >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{appointment.motivo}</h3>
+                    <h3 className="text-lg font-semibold text-[hsl(var(--foreground))]">{appointment.motivo}</h3>
                     {getStatusBadge(appointment.estado)}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-[hsl(var(--muted-foreground))]">
                     <div>
                       <p>
                         <span className="font-medium">Fecha:</span> {formatDate(appointment.fecha)}
@@ -245,7 +250,9 @@ export default function MyAppointments() {
                   </div>
 
                   {appointment.createdAt && (
-                    <p className="text-xs text-gray-400 mt-2">Creada el {formatDate(appointment.createdAt)}</p>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">
+                      Creada el {formatDate(appointment.createdAt)}
+                    </p>
                   )}
                 </div>
 
@@ -255,7 +262,7 @@ export default function MyAppointments() {
                       setSelectedAppointment(appointment)
                       setShowCancelModal(true)
                     }}
-                    className="ml-4 bg-red-100 text-red-700 px-3 py-1 rounded-md hover:bg-red-200 transition-colors text-sm"
+                    className="ml-4 bg-red-100 text-red-800 px-3 py-1 rounded-md hover:bg-red-200 transition-colors duration-200 text-sm"
                   >
                     Cancelar
                   </button>
@@ -269,42 +276,42 @@ export default function MyAppointments() {
       {/* Modal para crear cita */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Nueva Cita</h2>
+          <div className="bg-[hsl(var(--card))] p-6 rounded-lg w-full max-w-md transition-colors duration-200">
+            <h2 className="text-xl font-bold mb-4 text-[hsl(var(--foreground))]">Nueva Cita</h2>
             <form onSubmit={handleCreateAppointment}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                  <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Fecha</label>
                   <input
                     type="date"
                     value={newAppointment.fecha}
                     onChange={(e) => setNewAppointment({ ...newAppointment, fecha: e.target.value })}
                     required
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
+                  <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Hora</label>
                   <input
                     type="time"
                     value={newAppointment.hora}
                     onChange={(e) => setNewAppointment({ ...newAppointment, hora: e.target.value })}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Motivo</label>
+                  <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-1">Motivo</label>
                   <textarea
                     value={newAppointment.motivo}
                     onChange={(e) => setNewAppointment({ ...newAppointment, motivo: e.target.value })}
                     required
                     rows={3}
                     placeholder="Describe el motivo de tu cita..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                   />
                 </div>
               </div>
@@ -313,14 +320,14 @@ export default function MyAppointments() {
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-[hsl(var(--muted-foreground))] border border-[hsl(var(--border))] rounded-md hover:bg-[hsl(var(--muted))] transition-colors duration-200"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-red-400 text-white rounded-md hover:bg-red-500 disabled:opacity-50 transition-colors duration-200"
                 >
                   {creating ? "Creando..." : "Crear Cita"}
                 </button>
