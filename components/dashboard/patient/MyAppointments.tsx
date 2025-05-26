@@ -118,7 +118,14 @@ export default function MyAppointments() {
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString("es-ES", {
+      // Extraer solo la parte de la fecha (YYYY-MM-DD) para evitar problemas de zona horaria
+      const datePart = dateString.split("T")[0]
+      const [year, month, day] = datePart.split("-")
+
+      // Crear fecha local sin conversión de zona horaria
+      const date = new Date(Number.parseInt(year), Number.parseInt(month) - 1, Number.parseInt(day))
+
+      return date.toLocaleDateString("es-ES", {
         year: "numeric",
         month: "long",
         day: "numeric",

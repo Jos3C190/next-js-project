@@ -30,10 +30,10 @@ node_modules
 .next
 
 # Ignorar archivos de entorno local
-# .env.local
-# .env.development.local
-# .env.test.local
-# .env.production.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Ignorar archivos de registro
 npm-debug.log*

@@ -161,54 +161,57 @@ const DashboardSkeleton = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <div className="h-8 bg-gray-200 rounded w-64 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 mt-2 animate-pulse"></div>
+          <div className="h-8 bg-[hsl(var(--muted))] rounded w-64 animate-pulse"></div>
+          <div className="h-4 bg-[hsl(var(--muted))] rounded w-48 mt-2 animate-pulse"></div>
         </div>
         <div className="flex space-x-2">
-          <div className="h-10 bg-gray-200 rounded w-24 animate-pulse"></div>
-          <div className="h-10 bg-gray-200 rounded w-20 animate-pulse"></div>
+          <div className="h-10 bg-[hsl(var(--muted))] rounded w-24 animate-pulse"></div>
+          <div className="h-10 bg-[hsl(var(--muted))] rounded w-20 animate-pulse"></div>
         </div>
       </div>
 
       {/* Stats Cards Skeleton */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-200">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4 animate-pulse"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+          <div
+            key={i}
+            className="bg-[hsl(var(--card))] rounded-lg shadow-md p-6 border-l-4 border-[hsl(var(--border))]"
+          >
+            <div className="h-4 bg-[hsl(var(--muted))] rounded w-3/4 mb-4 animate-pulse"></div>
+            <div className="h-8 bg-[hsl(var(--muted))] rounded w-1/2 animate-pulse"></div>
           </div>
         ))}
       </div>
 
       {/* Calendar Skeleton */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="h-6 bg-gray-200 rounded w-48 mb-6 animate-pulse"></div>
+      <div className="bg-[hsl(var(--card))] rounded-lg shadow-md p-6">
+        <div className="h-6 bg-[hsl(var(--muted))] rounded w-48 mb-6 animate-pulse"></div>
         <div className="grid grid-cols-7 gap-1 mb-4">
           {Array.from({ length: 35 }).map((_, i) => (
-            <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+            <div key={i} className="h-12 bg-[hsl(var(--muted))] rounded animate-pulse"></div>
           ))}
         </div>
       </div>
 
       {/* Activity and Chart Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+        <div className="bg-[hsl(var(--card))] rounded-lg shadow-md p-6">
+          <div className="h-6 bg-[hsl(var(--muted))] rounded w-48 mb-4 animate-pulse"></div>
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="w-10 h-10 bg-[hsl(var(--muted))] rounded-full animate-pulse"></div>
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                  <div className="h-4 bg-[hsl(var(--muted))] rounded w-3/4 mb-2 animate-pulse"></div>
+                  <div className="h-3 bg-[hsl(var(--muted))] rounded w-1/2 animate-pulse"></div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="h-6 bg-gray-200 rounded w-48 mb-6 animate-pulse"></div>
-          <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+        <div className="bg-[hsl(var(--card))] rounded-lg shadow-md p-6">
+          <div className="h-6 bg-[hsl(var(--muted))] rounded w-48 mb-6 animate-pulse"></div>
+          <div className="h-64 bg-[hsl(var(--muted))] rounded animate-pulse"></div>
         </div>
       </div>
     </div>

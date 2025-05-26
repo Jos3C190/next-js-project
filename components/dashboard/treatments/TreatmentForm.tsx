@@ -29,7 +29,7 @@ const treatmentTypes = [
 ]
 
 // Estados de tratamiento
-const treatmentStatuses = ["pendiente", "en progreso", "completado", "cancelado"]
+const treatmentStatuses = ["pendiente", "en progreso", "completado"]
 
 const TreatmentForm = ({ treatment, patients = [], dentists = [], onSave, onCancel }: TreatmentFormProps) => {
   const [formData, setFormData] = useState({

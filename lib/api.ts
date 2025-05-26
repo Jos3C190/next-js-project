@@ -1000,28 +1000,50 @@ export const createDashboardApi = (token: string) => ({
   },
 
   getAllAppointments: async (): Promise<{ data: Appointment[]; pagination: any }> => {
-    // Primero obtener el total
-    const initialResponse = await apiRequest<{ data: Appointment[]; pagination: any }>(
-      "/api/citas?page=1&limit=1",
-      {
-        method: "GET",
-      },
-      token,
-    )
-
-    // Usar el total como límite para obtener todos los datos
-    const total = initialResponse.pagination.total
-    if (total > 1) {
-      return apiRequest<{ data: Appointment[]; pagination: any }>(
-        `/api/citas?limit=${total}`,
+    try {
+      // Primero obtener el total
+      const initialResponse = await apiRequest<{ data: Appointment[]; pagination: any }>(
+        "/api/citas?page=1&limit=1",
         {
           method: "GET",
         },
         token,
       )
-    }
 
-    return initialResponse
+      // Validar que la respuesta tenga la estructura esperada
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        // Si no hay paginación o está mal estructurada, devolver datos vacíos o lo que hay
+        return {
+          data: Array.isArray(initialResponse?.data) ? initialResponse.data : [],
+          pagination: { total: 0, page: 1, limit: 1, totalPages: 0 },
+        }
+      }
+
+      // Usar el total como límite para obtener todos los datos
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allDataResponse = await apiRequest<{ data: Appointment[]; pagination: any }>(
+          `/api/citas?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return {
+          data: Array.isArray(allDataResponse?.data) ? allDataResponse.data : [],
+          pagination: allDataResponse.pagination || { total: 0, page: 1, limit: total, totalPages: 0 },
+        }
+      }
+
+      return initialResponse
+    } catch (error) {
+      console.error("Error loading appointments:", error)
+      // Devolver estructura segura en caso de error
+      return {
+        data: [],
+        pagination: { total: 0, page: 1, limit: 1, totalPages: 0 },
+      }
+    }
   },
 })
 
