@@ -57,9 +57,17 @@ const TreatmentManagement = () => {
         treatmentsApi.getAllDentists(),
       ])
 
-      // Validar y establecer tratamientos
+      // Validar y establecer tratamientos - filtrar los que tienen datos completos
       if (treatmentsResponse && Array.isArray(treatmentsResponse.data)) {
-        setTreatments(treatmentsResponse.data)
+        const validTreatments = treatmentsResponse.data.filter(
+          (treatment) =>
+            treatment &&
+            treatment.paciente &&
+            treatment.odontologo &&
+            treatment.paciente.nombre &&
+            treatment.odontologo.nombre,
+        )
+        setTreatments(validTreatments)
       } else {
         setTreatments([])
       }
@@ -167,26 +175,37 @@ const TreatmentManagement = () => {
 
     const normalizedSearchTerm = normalizeText(searchTerm)
 
-    return treatments.filter(
-      (treatment) =>
-        normalizeText(`${treatment.paciente.nombre} ${treatment.paciente.apellido}`).includes(normalizedSearchTerm) ||
-        normalizeText(`${treatment.odontologo.nombre} ${treatment.odontologo.apellido}`).includes(
-          normalizedSearchTerm,
-        ) ||
-        normalizeText(treatment.tipo).includes(normalizedSearchTerm) ||
-        normalizeText(treatment.descripcion).includes(normalizedSearchTerm) ||
-        normalizeText(treatment.estado).includes(normalizedSearchTerm),
-    )
+    return treatments.filter((treatment) => {
+      // Verificar que el tratamiento y sus propiedades existan
+      if (!treatment || !treatment.paciente || !treatment.odontologo) {
+        return false
+      }
+
+      const patientName = `${treatment.paciente.nombre || ""} ${treatment.paciente.apellido || ""}`.trim()
+      const dentistName = `${treatment.odontologo.nombre || ""} ${treatment.odontologo.apellido || ""}`.trim()
+
+      return (
+        normalizeText(patientName).includes(normalizedSearchTerm) ||
+        normalizeText(dentistName).includes(normalizedSearchTerm) ||
+        normalizeText(treatment.tipo || "").includes(normalizedSearchTerm) ||
+        normalizeText(treatment.descripcion || "").includes(normalizedSearchTerm) ||
+        normalizeText(treatment.estado || "").includes(normalizedSearchTerm)
+      )
+    })
   }, [treatments, searchTerm])
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    } catch {
+      return "Fecha inválida"
+    }
   }
 
   // Calculate progress percentage
@@ -224,6 +243,26 @@ const TreatmentManagement = () => {
   }
 
   if (viewMode === "view" && currentTreatment) {
+    // Verificar que el tratamiento actual tenga los datos necesarios
+    if (!currentTreatment.paciente || !currentTreatment.odontologo) {
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Detalles del Tratamiento</h1>
+            <button
+              onClick={() => setViewMode("list")}
+              className="px-4 py-2 bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] rounded-md hover:bg-[hsl(var(--secondary))]/80 transition-colors duration-200"
+            >
+              Volver
+            </button>
+          </div>
+          <div className="bg-[hsl(var(--card))] shadow-md rounded-lg p-8 text-center transition-colors duration-200">
+            <p className="text-red-500">Error: Datos del tratamiento incompletos</p>
+          </div>
+        </div>
+      )
+    }
+
     const progressPercentage = calculateProgress(currentTreatment.sesionesCompletadas, currentTreatment.numeroSesiones)
 
     return (
@@ -248,17 +287,17 @@ const TreatmentManagement = () => {
               </div>
               <div className="space-y-2 text-sm">
                 <p>
-                  <span className="font-semibold">Nombre:</span> {currentTreatment.paciente.nombre}{" "}
-                  {currentTreatment.paciente.apellido}
+                  <span className="font-semibold">Nombre:</span> {currentTreatment.paciente.nombre || "N/A"}{" "}
+                  {currentTreatment.paciente.apellido || ""}
                 </p>
                 <p>
-                  <span className="font-semibold">Correo:</span> {currentTreatment.paciente.correo}
+                  <span className="font-semibold">Correo:</span> {currentTreatment.paciente.correo || "N/A"}
                 </p>
                 <p>
-                  <span className="font-semibold">Teléfono:</span> {currentTreatment.paciente.telefono}
+                  <span className="font-semibold">Teléfono:</span> {currentTreatment.paciente.telefono || "N/A"}
                 </p>
                 <p>
-                  <span className="font-semibold">Dirección:</span> {currentTreatment.paciente.direccion}
+                  <span className="font-semibold">Dirección:</span> {currentTreatment.paciente.direccion || "N/A"}
                 </p>
               </div>
             </div>
@@ -271,17 +310,18 @@ const TreatmentManagement = () => {
               </div>
               <div className="space-y-2 text-sm">
                 <p>
-                  <span className="font-semibold">Nombre:</span> Dr. {currentTreatment.odontologo.nombre}{" "}
-                  {currentTreatment.odontologo.apellido}
+                  <span className="font-semibold">Nombre:</span> Dr. {currentTreatment.odontologo.nombre || "N/A"}{" "}
+                  {currentTreatment.odontologo.apellido || ""}
                 </p>
                 <p>
-                  <span className="font-semibold">Especialidad:</span> {currentTreatment.odontologo.especialidad}
+                  <span className="font-semibold">Especialidad:</span>{" "}
+                  {currentTreatment.odontologo.especialidad || "N/A"}
                 </p>
                 <p>
-                  <span className="font-semibold">Correo:</span> {currentTreatment.odontologo.correo}
+                  <span className="font-semibold">Correo:</span> {currentTreatment.odontologo.correo || "N/A"}
                 </p>
                 <p>
-                  <span className="font-semibold">Teléfono:</span> {currentTreatment.odontologo.telefono}
+                  <span className="font-semibold">Teléfono:</span> {currentTreatment.odontologo.telefono || "N/A"}
                 </p>
               </div>
             </div>
@@ -295,7 +335,7 @@ const TreatmentManagement = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
               <div>
-                <span className="font-semibold">Tipo:</span> {currentTreatment.tipo}
+                <span className="font-semibold">Tipo:</span> {currentTreatment.tipo || "N/A"}
               </div>
               <div>
                 <span className="font-semibold">Estado:</span>{" "}
@@ -310,14 +350,17 @@ const TreatmentManagement = () => {
                           : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {currentTreatment.estado.charAt(0).toUpperCase() + currentTreatment.estado.slice(1)}
+                  {currentTreatment.estado
+                    ? currentTreatment.estado.charAt(0).toUpperCase() + currentTreatment.estado.slice(1)
+                    : "N/A"}
                 </span>
               </div>
               <div>
-                <span className="font-semibold">Costo:</span> ${currentTreatment.costo}
+                <span className="font-semibold">Costo:</span> ${currentTreatment.costo || 0}
               </div>
               <div>
-                <span className="font-semibold">Fecha de Inicio:</span> {formatDate(currentTreatment.fechaInicio)}
+                <span className="font-semibold">Fecha de Inicio:</span>{" "}
+                {currentTreatment.fechaInicio ? formatDate(currentTreatment.fechaInicio) : "N/A"}
               </div>
               {currentTreatment.fechaFin && (
                 <div>
@@ -325,8 +368,8 @@ const TreatmentManagement = () => {
                 </div>
               )}
               <div>
-                <span className="font-semibold">Sesiones:</span> {currentTreatment.sesionesCompletadas} de{" "}
-                {currentTreatment.numeroSesiones}
+                <span className="font-semibold">Sesiones:</span> {currentTreatment.sesionesCompletadas || 0} de{" "}
+                {currentTreatment.numeroSesiones || 0}
               </div>
             </div>
 
@@ -340,7 +383,9 @@ const TreatmentManagement = () => {
 
             <div className="mt-4">
               <span className="font-semibold">Descripción:</span>
-              <p className="mt-1 text-[hsl(var(--muted-foreground))]">{currentTreatment.descripcion}</p>
+              <p className="mt-1 text-[hsl(var(--muted-foreground))]">
+                {currentTreatment.descripcion || "Sin descripción"}
+              </p>
             </div>
           </div>
 
@@ -366,7 +411,7 @@ const TreatmentManagement = () => {
           onClose={handleDeleteCancel}
           onConfirm={handleDeleteConfirm}
           title="Eliminar Tratamiento"
-          message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.tipo} para ${treatmentToDelete?.paciente.nombre} ${treatmentToDelete?.paciente.apellido}? Esta acción no se puede deshacer.`}
+          message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.tipo || "N/A"} para ${treatmentToDelete?.paciente?.nombre || "N/A"} ${treatmentToDelete?.paciente?.apellido || ""}? Esta acción no se puede deshacer.`}
           confirmText="Eliminar"
           cancelText="Cancelar"
           type="danger"
@@ -457,7 +502,15 @@ const TreatmentManagement = () => {
             <tbody className="bg-[hsl(var(--card))] divide-y divide-[hsl(var(--border))] transition-colors duration-200">
               {Array.isArray(currentItems) &&
                 currentItems.map((treatment) => {
-                  const progressPercentage = calculateProgress(treatment.sesionesCompletadas, treatment.numeroSesiones)
+                  // Verificar que el tratamiento tenga los datos necesarios
+                  if (!treatment || !treatment.paciente || !treatment.odontologo) {
+                    return null
+                  }
+
+                  const progressPercentage = calculateProgress(
+                    treatment.sesionesCompletadas || 0,
+                    treatment.numeroSesiones || 1,
+                  )
 
                   return (
                     <tr
@@ -469,10 +522,10 @@ const TreatmentManagement = () => {
                           <User className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
                           <div>
                             <div className="text-sm font-medium text-[hsl(var(--foreground))]">
-                              {treatment.paciente.nombre} {treatment.paciente.apellido}
+                              {treatment.paciente.nombre || "N/A"} {treatment.paciente.apellido || ""}
                             </div>
                             <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                              {treatment.paciente.correo}
+                              {treatment.paciente.correo || "N/A"}
                             </div>
                           </div>
                         </div>
@@ -482,10 +535,10 @@ const TreatmentManagement = () => {
                           <Stethoscope className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
                           <div>
                             <div className="text-sm font-medium text-[hsl(var(--foreground))]">
-                              Dr. {treatment.odontologo.nombre} {treatment.odontologo.apellido}
+                              Dr. {treatment.odontologo.nombre || "N/A"} {treatment.odontologo.apellido || ""}
                             </div>
                             <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                              {treatment.odontologo.especialidad}
+                              {treatment.odontologo.especialidad || "N/A"}
                             </div>
                           </div>
                         </div>
@@ -494,8 +547,10 @@ const TreatmentManagement = () => {
                         <div className="flex items-center">
                           <Activity className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
                           <div>
-                            <div className="text-sm font-medium text-[hsl(var(--foreground))]">{treatment.tipo}</div>
-                            <div className="text-sm text-[hsl(var(--muted-foreground))]">${treatment.costo}</div>
+                            <div className="text-sm font-medium text-[hsl(var(--foreground))]">
+                              {treatment.tipo || "N/A"}
+                            </div>
+                            <div className="text-sm text-[hsl(var(--muted-foreground))]">${treatment.costo || 0}</div>
                           </div>
                         </div>
                       </td>
@@ -511,7 +566,9 @@ const TreatmentManagement = () => {
                                   : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {treatment.estado.charAt(0).toUpperCase() + treatment.estado.slice(1)}
+                          {treatment.estado
+                            ? treatment.estado.charAt(0).toUpperCase() + treatment.estado.slice(1)
+                            : "N/A"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -571,7 +628,7 @@ const TreatmentManagement = () => {
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         title="Eliminar Tratamiento"
-        message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.tipo} para ${treatmentToDelete?.paciente.nombre} ${treatmentToDelete?.paciente.apellido}? Esta acción no se puede deshacer.`}
+        message={`¿Está seguro que desea eliminar el tratamiento de ${treatmentToDelete?.tipo || "N/A"} para ${treatmentToDelete?.paciente?.nombre || "N/A"} ${treatmentToDelete?.paciente?.apellido || ""}? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"

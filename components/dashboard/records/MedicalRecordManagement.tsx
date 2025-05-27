@@ -46,7 +46,12 @@ const MedicalRecordManagement: React.FC = () => {
 
       // Validar que la respuesta tenga la estructura esperada
       if (response && response.data && Array.isArray(response.data)) {
-        setRecords(response.data)
+        // Filtrar registros que tengan datos completos de paciente
+        const validRecords = response.data.filter(
+          (record) =>
+            record && record.paciente && record.paciente.nombre && record.paciente.apellido && record.paciente.correo,
+        )
+        setRecords(validRecords)
       } else {
         setRecords([])
         console.warn("La respuesta de la API no tiene la estructura esperada:", response)
@@ -150,14 +155,23 @@ const MedicalRecordManagement: React.FC = () => {
       return []
     }
 
-    const normalizedSearchTerm = normalizeText(searchTerm)
+    return records.filter((record) => {
+      // Verificar que el record y paciente existan
+      if (!record || !record.paciente) return false
 
-    return records.filter(
-      (record) =>
-        normalizeText(`${record.paciente.nombre} ${record.paciente.apellido}`).includes(normalizedSearchTerm) ||
-        normalizeText(record.paciente.correo).includes(normalizedSearchTerm) ||
-        normalizeText(record.observaciones).includes(normalizedSearchTerm),
-    )
+      const { paciente } = record
+
+      // Verificar que las propiedades del paciente existan
+      if (!paciente.nombre || !paciente.apellido || !paciente.correo) return false
+
+      const normalizedSearchTerm = normalizeText(searchTerm)
+
+      return (
+        normalizeText(`${paciente.nombre} ${paciente.apellido}`).includes(normalizedSearchTerm) ||
+        normalizeText(paciente.correo).includes(normalizedSearchTerm) ||
+        normalizeText(record.observaciones || "").includes(normalizedSearchTerm)
+      )
+    })
   }, [records, searchTerm])
 
   // Calcular paginación
@@ -211,24 +225,28 @@ const MedicalRecordManagement: React.FC = () => {
               <div>
                 <p className="text-sm text-[hsl(var(--muted-foreground))]">Nombre completo</p>
                 <p className="font-medium">
-                  {currentRecord.paciente.nombre} {currentRecord.paciente.apellido}
+                  {currentRecord.paciente?.nombre || "N/A"} {currentRecord.paciente?.apellido || "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-[hsl(var(--muted-foreground))]">Correo electrónico</p>
-                <p className="font-medium">{currentRecord.paciente.correo}</p>
+                <p className="font-medium">{currentRecord.paciente?.correo || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-[hsl(var(--muted-foreground))]">Teléfono</p>
-                <p className="font-medium">{currentRecord.paciente.telefono}</p>
+                <p className="font-medium">{currentRecord.paciente?.telefono || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-[hsl(var(--muted-foreground))]">Fecha de nacimiento</p>
-                <p className="font-medium">{formatDate(currentRecord.paciente.fecha_nacimiento)}</p>
+                <p className="font-medium">
+                  {currentRecord.paciente?.fecha_nacimiento
+                    ? formatDate(currentRecord.paciente.fecha_nacimiento)
+                    : "N/A"}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <p className="text-sm text-[hsl(var(--muted-foreground))]">Dirección</p>
-                <p className="font-medium">{currentRecord.paciente.direccion}</p>
+                <p className="font-medium">{currentRecord.paciente?.direccion || "N/A"}</p>
               </div>
             </div>
           </div>
@@ -260,58 +278,66 @@ const MedicalRecordManagement: React.FC = () => {
               <Stethoscope className="h-5 w-5 mr-2" />
               Tratamientos ({currentRecord.tratamientos.length})
             </h2>
-            {currentRecord.tratamientos.length > 0 ? (
+            {currentRecord.tratamientos && currentRecord.tratamientos.length > 0 ? (
               <div className="space-y-4">
-                {currentRecord.tratamientos.map((treatment) => (
-                  <div key={treatment._id} className="bg-[hsl(var(--secondary))] p-4 rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">Tipo de tratamiento</p>
-                        <p className="font-medium">{treatment.tipo}</p>
+                {currentRecord.tratamientos
+                  .map((treatment) => {
+                    if (!treatment) return null
+
+                    return (
+                      <div key={treatment._id} className="bg-[hsl(var(--secondary))] p-4 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]">Tipo de tratamiento</p>
+                            <p className="font-medium">{treatment.tipo || "N/A"}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]">Estado</p>
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                treatment.estado === "completado"
+                                  ? "bg-green-100 text-green-800"
+                                  : treatment.estado === "en_progreso"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : treatment.estado === "pendiente"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {treatment.estado || "N/A"}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]">Odontólogo</p>
+                            <p className="font-medium">
+                              Dr. {treatment.odontologo?.nombre || "N/A"} {treatment.odontologo?.apellido || ""}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]">Costo</p>
+                            <p className="font-medium">${(treatment.costo || 0).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]">Sesiones</p>
+                            <p className="font-medium">
+                              {treatment.sesionesCompletadas || 0}/{treatment.numeroSesiones || 0}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]">Fecha de inicio</p>
+                            <p className="font-medium">
+                              {treatment.fechaInicio ? formatDate(treatment.fechaInicio) : "N/A"}
+                            </p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-sm text-[hsl(var(--muted-foreground))]">Descripción</p>
+                            <p className="text-[hsl(var(--foreground))]">{treatment.descripcion || "N/A"}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">Estado</p>
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            treatment.estado === "completado"
-                              ? "bg-green-100 text-green-800"
-                              : treatment.estado === "en_progreso"
-                                ? "bg-blue-100 text-blue-800"
-                                : treatment.estado === "pendiente"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {treatment.estado}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">Odontólogo</p>
-                        <p className="font-medium">
-                          Dr. {treatment.odontologo.nombre} {treatment.odontologo.apellido}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">Costo</p>
-                        <p className="font-medium">${treatment.costo.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">Sesiones</p>
-                        <p className="font-medium">
-                          {treatment.sesionesCompletadas}/{treatment.numeroSesiones}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">Fecha de inicio</p>
-                        <p className="font-medium">{formatDate(treatment.fechaInicio)}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <p className="text-sm text-[hsl(var(--muted-foreground))]">Descripción</p>
-                        <p className="text-[hsl(var(--foreground))]">{treatment.descripcion}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    )
+                  })
+                  .filter(Boolean)}
               </div>
             ) : (
               <div className="bg-[hsl(var(--secondary))] p-4 rounded-lg text-center">
@@ -425,54 +451,66 @@ const MedicalRecordManagement: React.FC = () => {
                 </thead>
                 <tbody className="bg-[hsl(var(--card))] divide-y divide-[hsl(var(--border))]">
                   {currentItems && currentItems.length > 0 ? (
-                    currentItems.map((record) => (
-                      <tr key={record._id} className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-[hsl(var(--foreground))]">
-                            {record.paciente.nombre} {record.paciente.apellido}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-[hsl(var(--muted-foreground))]">{record.paciente.correo}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-[hsl(var(--muted-foreground))]">
-                            {formatDate(record.fechaCreacion)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <Stethoscope className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
-                            <span className="text-sm text-[hsl(var(--muted-foreground))]">
-                              {record.tratamientos.length}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleView(record)}
-                            className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3"
-                            title="Ver detalles"
+                    currentItems
+                      .map((record) => {
+                        // Verificar que el record tenga datos válidos antes de renderizar
+                        if (!record || !record.paciente) return null
+
+                        return (
+                          <tr
+                            key={record._id}
+                            className="hover:bg-[hsl(var(--card-hover))] transition-colors duration-200"
                           >
-                            <Eye className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(record)}
-                            className="text-amber-500 hover:text-amber-600 mr-3"
-                            title="Editar"
-                          >
-                            <Edit className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(record)}
-                            className="text-red-500 hover:text-red-600"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-[hsl(var(--foreground))]">
+                                {record.paciente?.nombre || "N/A"} {record.paciente?.apellido || "N/A"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                                {record.paciente?.correo || "N/A"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-[hsl(var(--muted-foreground))]">
+                                {record.fechaCreacion ? formatDate(record.fechaCreacion) : "N/A"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <Stethoscope className="h-4 w-4 text-[hsl(var(--muted-foreground))] mr-2" />
+                                <span className="text-sm text-[hsl(var(--muted-foreground))]">
+                                  {record.tratamientos?.length || 0}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button
+                                onClick={() => handleView(record)}
+                                className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mr-3"
+                                title="Ver detalles"
+                              >
+                                <Eye className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleEdit(record)}
+                                className="text-amber-500 hover:text-amber-600 mr-3"
+                                title="Editar"
+                              >
+                                <Edit className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(record)}
+                                className="text-red-500 hover:text-red-600"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })
+                      .filter(Boolean) // Filtrar elementos null
                   ) : (
                     <tr>
                       <td colSpan={5} className="px-6 py-4 text-center text-[hsl(var(--muted-foreground))]">
