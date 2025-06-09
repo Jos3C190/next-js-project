@@ -14,19 +14,11 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light")
+  const [theme, setTheme] = useState<Theme>("dark")
 
   // Inicializar el tema desde localStorage o preferencia del sistema
   useEffect(() => {
-    // Verificar si hay una preferencia guardada
-    const savedTheme = localStorage.getItem("theme") as Theme | null
-
-    if (savedTheme) {
-      setTheme(savedTheme)
-    } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      // Si no hay preferencia guardada, usar la preferencia del sistema
-      setTheme("dark")
-    }
+    setTheme("dark")
   }, [])
 
   // Actualizar el atributo data-theme en el documento cuando cambie el tema
@@ -36,7 +28,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme])
 
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"))
+    // Modo oscuro fijo - no hacer nada
   }
 
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>

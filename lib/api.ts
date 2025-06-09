@@ -319,6 +319,126 @@ export interface MedicalRecordsResponse {
   }
 }
 
+// Interfaces para pagos y facturación
+export interface Payment {
+  _id: string
+  paciente: {
+    _id: string
+    nombre: string
+    apellido: string
+    correo: string
+    telefono: string
+    direccion?: string
+  }
+  tratamiento?: {
+    _id: string
+    descripcion: string
+    tipo: string
+    costo: number
+  }
+  // Invoice-related fields
+  items: {
+    descripcion: string
+    cantidad: number
+    precioUnitario: number
+  }[]
+  metodoPago: "efectivo" | "tarjeta" | "transferencia"
+  estado: "pendiente" | "pagado" | "cancelado"
+  fechaVencimiento: string
+  fechaPago?: string
+  notas?: string
+  numeroFactura?: string
+  subtotal: number
+  impuestos: number
+  total: number
+  fechaEmision: string
+  createdAt: string
+  __v?: number
+}
+
+// Actualizar la interfaz CreatePaymentRequest para eliminar el campo transaccionId
+export interface CreatePaymentRequest {
+  paciente: string
+  pacienteTemporalId?: string
+  tratamiento?: string
+  items: {
+    descripcion: string
+    cantidad: number
+    precioUnitario: number
+  }[]
+  metodoPago: "efectivo" | "tarjeta" | "transferencia"
+  estado?: "pendiente" | "pagado" | "cancelado"
+  fechaVencimiento: string
+  fechaPago?: string
+  notas?: string
+}
+
+export interface UpdatePaymentRequest {
+  items?: {
+    descripcion: string
+    cantidad: number
+    precioUnitario: number
+  }[]
+  metodoPago?: "efectivo" | "tarjeta" | "transferencia"
+  estado?: "pendiente" | "pagado" | "cancelado"
+  fechaVencimiento?: string
+  fechaPago?: string
+  notas?: string
+}
+
+export type Invoice = {}
+
+export interface InvoicesResponse {
+  data: Invoice[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface CreateInvoiceRequest {
+  paciente: string
+  items: {
+    descripcion: string
+    cantidad: number
+    precioUnitario: number
+  }[]
+  fechaVencimiento: string
+  notas?: string
+}
+
+export interface UpdateInvoiceRequest {
+  estado?: "borrador" | "enviada" | "pagada" | "cancelada"
+  fechaVencimiento?: string
+  fechaPago?: string
+  notas?: string
+}
+
+export interface PaymentStats {
+  totalIngresos: number
+  ingresosMes: number
+  pagosPendientes: number
+  pagosVencidos: number
+  facturasPendientes: number
+  facturasVencidas: number
+  promedioTiempoPago: number
+}
+
+export interface PaymentsResponse {
+  docs: Payment[]
+  totalDocs: number
+  limit: number
+  totalPages: number
+  page: number
+  pagingCounter: number
+  hasPrevPage: boolean
+  hasNextPage: boolean
+  prevPage: number | null
+  nextPage: number | null
+}
+
 // Función helper para hacer peticiones
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?: string): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
@@ -931,6 +1051,230 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
             role: "paciente",
           },
         } as T)
+      } else if (endpoint === "/api/pagos") {
+        if (method === "POST") {
+          const requestData = JSON.parse(body || "{}")
+          const subtotal = requestData.items.reduce(
+            (sum: number, item: any) => sum + item.cantidad * item.precioUnitario,
+            0,
+          )
+          const impuestos = subtotal * 0.13
+          const total = subtotal + impuestos
+
+          resolve({
+            _id: "new-payment-id",
+            paciente: requestData.paciente,
+            tratamiento: requestData.tratamiento,
+            items: requestData.items,
+            metodoPago: requestData.metodoPago,
+            estado: requestData.estado || "pendiente",
+            fechaVencimiento: new Date(requestData.fechaVencimiento).toISOString(),
+            fechaPago: requestData.fechaPago ? new Date(requestData.fechaPago).toISOString() : undefined,
+            notas: requestData.notas,
+            numeroFactura: `FAC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`,
+            subtotal,
+            impuestos,
+            total,
+            fechaEmision: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            __v: 0,
+          } as T)
+        } else {
+          resolve({
+            docs: [
+              {
+                _id: "payment1",
+                paciente: {
+                  _id: "6834b2728a21ba72cbc7d1ee",
+                  nombre: "Sofía",
+                  apellido: "Ramírez",
+                  correo: "sofia.ramirez@example.com",
+                  telefono: "56789043",
+                  direccion: "Calle de las Flores 456",
+                },
+                tratamiento: {
+                  _id: "6834bb1b8a21ba72cbc7d728",
+                  descripcion: "Control post-restauración de caries en molar superior derecho",
+                  tipo: "Otro",
+                  costo: 100,
+                },
+                items: [
+                  {
+                    descripcion: "Consulta inicial",
+                    cantidad: 1,
+                    precioUnitario: 50,
+                  },
+                  {
+                    descripcion: "Brackets metálicos",
+                    cantidad: 1,
+                    precioUnitario: 1700,
+                  },
+                ],
+                metodoPago: "tarjeta",
+                estado: "pendiente",
+                fechaVencimiento: "2025-01-30T00:00:00.000Z",
+                notas: "Pago inicial del tratamiento",
+                numeroFactura: "FAC-2025-001",
+                subtotal: 1750,
+                impuestos: 227.5,
+                total: 1977.5,
+                fechaEmision: "2025-06-08T21:56:28.390Z",
+                createdAt: "2025-06-08T21:56:28.390Z",
+              },
+            ],
+            totalDocs: 1,
+            limit: 10,
+            totalPages: 1,
+            page: 1,
+            pagingCounter: 1,
+            hasPrevPage: false,
+            hasNextPage: false,
+            prevPage: null,
+            nextPage: null,
+          } as T)
+        }
+      } else if (endpoint.includes("/api/pagos/") && method === "PUT") {
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          _id: endpoint.split("/").pop(),
+          ...requestData,
+          fechaVencimiento: requestData.fechaVencimiento
+            ? new Date(requestData.fechaVencimiento).toISOString()
+            : undefined,
+          fechaPago: requestData.fechaPago ? new Date(requestData.fechaPago).toISOString() : undefined,
+          __v: 0,
+        } as T)
+      } else if (endpoint.includes("/api/pagos/") && method === "DELETE") {
+        resolve({
+          message: "Pago eliminado con éxito",
+        } as T)
+      } else if (endpoint === "/api/facturas") {
+        if (method === "POST") {
+          const requestData = JSON.parse(body || "{}")
+          const subtotal = requestData.items.reduce(
+            (sum: number, item: any) => sum + item.cantidad * item.precioUnitario,
+            0,
+          )
+          const impuestos = subtotal * 0.13 // 13% IVA
+          const total = subtotal + impuestos
+
+          resolve({
+            _id: "new-invoice-id",
+            numeroFactura: `FAC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`,
+            paciente: requestData.paciente,
+            items: requestData.items.map((item: any) => ({
+              ...item,
+              total: item.cantidad * item.precioUnitario,
+            })),
+            subtotal,
+            impuestos,
+            total,
+            estado: "borrador",
+            fechaEmision: new Date().toISOString(),
+            fechaVencimiento: new Date(requestData.fechaVencimiento).toISOString(),
+            notas: requestData.notas,
+            createdAt: new Date().toISOString(),
+            __v: 0,
+          } as T)
+        } else {
+          resolve({
+            data: [
+              {
+                _id: "invoice1",
+                numeroFactura: "FAC-2025-001",
+                paciente: {
+                  _id: "67f4a50ec5e2bcae913f7871",
+                  nombre: "Javier",
+                  apellido: "Martinez",
+                  correo: "paciente@ejemplo.com",
+                  telefono: "1234567890",
+                  direccion: "Calle Falsa 123",
+                },
+                items: [
+                  {
+                    descripcion: "Consulta inicial",
+                    cantidad: 1,
+                    precioUnitario: 50,
+                    total: 50,
+                  },
+                  {
+                    descripcion: "Limpieza dental",
+                    cantidad: 1,
+                    precioUnitario: 100,
+                    total: 100,
+                  },
+                ],
+                subtotal: 150,
+                impuestos: 19.5,
+                total: 169.5,
+                estado: "pagada",
+                fechaEmision: "2025-01-20T00:00:00.000Z",
+                fechaVencimiento: "2025-02-20T00:00:00.000Z",
+                fechaPago: "2025-01-25T00:00:00.000Z",
+                metodoPago: "tarjeta",
+                createdAt: "2025-01-20T10:00:00.000Z",
+              },
+              {
+                _id: "invoice2",
+                numeroFactura: "FAC-2025-002",
+                paciente: {
+                  _id: "682fe194e35012e49e5f8eca",
+                  nombre: "Jose",
+                  apellido: "Carlos",
+                  correo: "jose.carlos@example.com",
+                  telefono: "123456789",
+                  direccion: "Calle Falsa 456",
+                },
+                items: [
+                  {
+                    descripcion: "Tratamiento de ortodoncia - Sesión 1",
+                    cantidad: 1,
+                    precioUnitario: 200,
+                    total: 200,
+                  },
+                ],
+                subtotal: 200,
+                impuestos: 26,
+                total: 226,
+                estado: "enviada",
+                fechaEmision: "2025-01-22T00:00:00.000Z",
+                fechaVencimiento: "2025-02-22T00:00:00.000Z",
+                createdAt: "2025-01-22T10:00:00.000Z",
+              },
+            ],
+            pagination: {
+              total: 2,
+              page: 1,
+              limit: 10,
+              totalPages: 1,
+            },
+          } as T)
+        }
+      } else if (endpoint.includes("/api/facturas/") && method === "PUT") {
+        const requestData = JSON.parse(body || "{}")
+        resolve({
+          _id: endpoint.split("/").pop(),
+          ...requestData,
+          fechaVencimiento: requestData.fechaVencimiento
+            ? new Date(requestData.fechaVencimiento).toISOString()
+            : undefined,
+          fechaPago: requestData.fechaPago ? new Date(requestData.fechaPago).toISOString() : undefined,
+          __v: 0,
+        } as T)
+      } else if (endpoint.includes("/api/facturas/") && method === "DELETE") {
+        resolve({
+          message: "Factura eliminada con éxito",
+        } as T)
+      } else if (endpoint === "/api/pagos/stats") {
+        resolve({
+          totalIngresos: 25400,
+          ingresosMes: 5240,
+          pagosPendientes: 3,
+          pagosVencidos: 1,
+          facturasPendientes: 2,
+          facturasVencidas: 1,
+          promedioTiempoPago: 7.5,
+        } as T)
       }
 
       // Respuesta por defecto
@@ -1475,3 +1819,255 @@ export const publicAppointmentsApi = {
     })
   },
 }
+
+// API de pagos
+export const createPaymentsApi = (token: string) => ({
+  getPayments: (page = 1, limit = 10): Promise<PaymentsResponse> => {
+    return apiRequest<PaymentsResponse>(
+      `/api/pagos?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  getPaymentById: (id: string): Promise<Payment> => {
+    return apiRequest<Payment>(
+      `/api/pagos/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  createPayment: (paymentData: CreatePaymentRequest): Promise<Payment> => {
+    return apiRequest<Payment>(
+      "/api/pagos",
+      {
+        method: "POST",
+        body: JSON.stringify(paymentData),
+      },
+      token,
+    )
+  },
+
+  updatePayment: (id: string, paymentData: UpdatePaymentRequest): Promise<Payment> => {
+    return apiRequest<Payment>(
+      `/api/pagos/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(paymentData),
+      },
+      token,
+    )
+  },
+
+  deletePayment: (id: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(
+      `/api/pagos/${id}`,
+      {
+        method: "DELETE",
+      },
+      token,
+    )
+  },
+
+  getPaymentStats: (): Promise<PaymentStats> => {
+    return apiRequest<PaymentStats>(
+      "/api/pagos/stats",
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  getAllPatients: async (): Promise<{ data: Patient[] }> => {
+    try {
+      const initialResponse = await apiRequest<PatientsResponse>(
+        "/pacientes?page=1&limit=1",
+        {
+          method: "GET",
+        },
+        token,
+      )
+
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        return { data: Array.isArray(initialResponse?.data) ? initialResponse.data : [] }
+      }
+
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allPatientsResponse = await apiRequest<PatientsResponse>(
+          `/pacientes?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return { data: Array.isArray(allPatientsResponse?.data) ? allPatientsResponse.data : [] }
+      }
+
+      return { data: Array.isArray(initialResponse.data) ? initialResponse.data : [] }
+    } catch (error) {
+      console.error("Error loading patients:", error)
+      return { data: [] }
+    }
+  },
+
+  getAllTreatments: async (): Promise<{ data: Treatment[] }> => {
+    try {
+      const initialResponse = await apiRequest<TreatmentsResponse>(
+        "/api/tratamientos?page=1&limit=1",
+        {
+          method: "GET",
+        },
+        token,
+      )
+
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        return { data: Array.isArray(initialResponse?.data) ? initialResponse.data : [] }
+      }
+
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allTreatmentsResponse = await apiRequest<TreatmentsResponse>(
+          `/api/tratamientos?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return { data: Array.isArray(allTreatmentsResponse?.data) ? allTreatmentsResponse.data : [] }
+      }
+
+      return { data: Array.isArray(initialResponse.data) ? initialResponse.data : [] }
+    } catch (error) {
+      console.error("Error loading treatments:", error)
+      return { data: [] }
+    }
+  },
+})
+
+// API de facturas
+export const createInvoicesApi = (token: string) => ({
+  getInvoices: (page = 1, limit = 10): Promise<InvoicesResponse> => {
+    return apiRequest<InvoicesResponse>(
+      `/api/facturas?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  getInvoiceById: (id: string): Promise<Invoice> => {
+    return apiRequest<Invoice>(
+      `/api/facturas/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  createInvoice: (invoiceData: CreateInvoiceRequest): Promise<Invoice> => {
+    return apiRequest<Invoice>(
+      "/api/facturas",
+      {
+        method: "POST",
+        body: JSON.stringify(invoiceData),
+      },
+      token,
+    )
+  },
+
+  updateInvoice: (id: string, invoiceData: UpdateInvoiceRequest): Promise<Invoice> => {
+    return apiRequest<Invoice>(
+      `/api/facturas/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(invoiceData),
+      },
+      token,
+    )
+  },
+
+  deleteInvoice: (id: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(
+      `/api/facturas/${id}`,
+      {
+        method: "DELETE",
+      },
+      token,
+    )
+  },
+
+  getAllPatients: async (): Promise<{ data: Patient[] }> => {
+    try {
+      const initialResponse = await apiRequest<PatientsResponse>(
+        "/pacientes?page=1&limit=1",
+        {
+          method: "GET",
+        },
+        token,
+      )
+
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        return { data: Array.isArray(initialResponse?.data) ? initialResponse.data : [] }
+      }
+
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allPatientsResponse = await apiRequest<PatientsResponse>(
+          `/pacientes?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return { data: Array.isArray(allPatientsResponse?.data) ? allPatientsResponse.data : [] }
+      }
+
+      return { data: Array.isArray(initialResponse.data) ? initialResponse.data : [] }
+    } catch (error) {
+      console.error("Error loading patients:", error)
+      return { data: [] }
+    }
+  },
+
+  getAllTreatments: async (): Promise<{ data: Treatment[] }> => {
+    try {
+      const initialResponse = await apiRequest<TreatmentsResponse>(
+        "/api/tratamientos?page=1&limit=1",
+        {
+          method: "GET",
+        },
+        token,
+      )
+
+      if (!initialResponse || !initialResponse.pagination || typeof initialResponse.pagination.total !== "number") {
+        return { data: Array.isArray(initialResponse?.data) ? initialResponse.data : [] }
+      }
+
+      const total = initialResponse.pagination.total
+      if (total > 1) {
+        const allTreatmentsResponse = await apiRequest<TreatmentsResponse>(
+          `/api/tratamientos?limit=${total}`,
+          {
+            method: "GET",
+          },
+          token,
+        )
+        return { data: Array.isArray(allTreatmentsResponse?.data) ? allTreatmentsResponse.data : [] }
+      }
+
+      return { data: Array.isArray(initialResponse.data) ? initialResponse.data : [] }
+    } catch (error) {
+      console.error("Error loading treatments:", error)
+      return { data: [] }
+    }
+  },
+})

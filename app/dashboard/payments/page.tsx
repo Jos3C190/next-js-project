@@ -3,6 +3,8 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
+import Layout from "@/components/dashboard/Layout"
+import PaymentManagement from "@/components/dashboard/payments/PaymentManagement"
 
 export default function PaymentsPage() {
   const { user } = useAuth()
@@ -16,5 +18,9 @@ export default function PaymentsPage() {
 
   if (!user) return null
 
-  return <div className="container mx-auto">{/* Página en blanco que hereda el layout del dashboard */}</div>
+  return (
+    <Layout>
+      <PaymentManagement />
+    </Layout>
+  )
 }

@@ -1,10 +1,9 @@
 "use client"
 
-import { Menu, Calendar, Clock, Moon, Sun } from "lucide-react"
+import { Menu, Calendar, Clock } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { useTheme } from "@/context/ThemeContext"
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
 
 interface HeaderProps {
   sidebarOpen: boolean
@@ -117,17 +116,6 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {/* Theme toggle button */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={toggleTheme}
-              className="p-2 rounded-full bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:bg-[hsl(var(--card-hover))] transition-colors duration-200"
-              aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-            >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </motion.button>
-
             <div className="hidden md:flex flex-col items-end mr-2">
               <span className="text-sm font-medium text-[hsl(var(--foreground))]">{getUserName()}</span>
               <span className="text-xs text-[hsl(var(--muted-foreground))]">{getUserRole()}</span>
