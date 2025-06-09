@@ -3,18 +3,33 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
+import ReportsManagement from "@/components/dashboard/reports/ReportsManagement"
+import Layout from "@/components/dashboard/Layout"
 
 export default function ReportsPage() {
-  const { user } = useAuth()
+  const { user, hasAccess } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!user) {
       router.push("/")
+      return
     }
-  }, [user, router])
 
-  if (!user) return null
+    // Verificar si el usuario tiene acceso al módulo de reportes
+    if (!hasAccess("reports")) {
+      router.push("/dashboard")
+      return
+    }
+  }, [user, hasAccess, router])
 
-  return <div className="container mx-auto">{/* Página en blanco que hereda el layout del dashboard */}</div>
+  if (!user || !hasAccess("reports")) {
+    return null
+  }
+
+  return (
+    <Layout>
+      <ReportsManagement />
+    </Layout>
+  )
 }
