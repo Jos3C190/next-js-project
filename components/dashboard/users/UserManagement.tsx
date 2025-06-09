@@ -9,6 +9,15 @@ import UserForm from "./UserForm"
 import ConfirmModal from "@/components/common/ConfirmModal"
 import Pagination from "@/components/dashboard/common/Pagination"
 
+// Agregar función para normalizar texto al inicio del componente, después de los imports
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remover acentos
+    .trim()
+}
+
 const UserManagement = () => {
   const { apiCall, isAuthenticated, isHydrated } = useAuthenticatedApi()
   const [users, setUsers] = useState<SystemUser[]>([])
@@ -22,6 +31,7 @@ const UserManagement = () => {
   const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  const [adminCurrentPage, setAdminCurrentPage] = useState(1)
 
   // Cargar usuarios
   const loadUsers = async () => {
@@ -46,19 +56,28 @@ const UserManagement = () => {
     }
   }, [isAuthenticated, isHydrated])
 
-  // Filtrar usuarios
+  // Reemplazar el useEffect de filtrado con esta versión mejorada:
   useEffect(() => {
     let filtered = users
 
     // Filtrar por término de búsqueda
     if (searchTerm) {
-      filtered = filtered.filter(
-        (user) =>
-          user.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.correo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.especialidad.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+      const normalizedSearchTerm = normalizeText(searchTerm)
+
+      filtered = filtered.filter((user) => {
+        const normalizedNombre = normalizeText(user.nombre)
+        const normalizedApellido = normalizeText(user.apellido)
+        const normalizedCorreo = normalizeText(user.correo)
+        const normalizedEspecialidad = normalizeText(user.especialidad)
+
+        return (
+          normalizedNombre.includes(normalizedSearchTerm) ||
+          normalizedApellido.includes(normalizedSearchTerm) ||
+          normalizedCorreo.includes(normalizedSearchTerm) ||
+          normalizedEspecialidad.includes(normalizedSearchTerm) ||
+          normalizeText(`${user.nombre} ${user.apellido}`).includes(normalizedSearchTerm)
+        )
+      })
     }
 
     // Filtrar por rol
@@ -68,6 +87,7 @@ const UserManagement = () => {
 
     setFilteredUsers(filtered)
     setCurrentPage(1) // Reset página al filtrar
+    setAdminCurrentPage(1) // Reset página de admins al filtrar
   }, [users, searchTerm, selectedRole])
 
   // Separar usuarios por rol
@@ -78,6 +98,11 @@ const UserManagement = () => {
   const totalDentistPages = Math.ceil(dentists.length / itemsPerPage)
   const startDentistIndex = (currentPage - 1) * itemsPerPage
   const paginatedDentists = dentists.slice(startDentistIndex, startDentistIndex + itemsPerPage)
+
+  // Paginación para administradores
+  const totalAdminPages = Math.ceil(admins.length / itemsPerPage)
+  const startAdminIndex = (adminCurrentPage - 1) * itemsPerPage
+  const paginatedAdmins = admins.slice(startAdminIndex, startAdminIndex + itemsPerPage)
 
   // Crear usuario
   const handleCreateUser = async (userData: CreateSystemUserRequest) => {
@@ -217,7 +242,7 @@ const UserManagement = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] h-4 w-4" />
               <input
                 type="text"
-                placeholder="Buscar por nombre, correo o especialidad..."
+                placeholder="Buscar por nombre, apellido, correo o especialidad (sin acentos)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -271,7 +296,7 @@ const UserManagement = () => {
               </div>
 
               <div className="bg-[hsl(var(--card))] rounded-lg border border-[hsl(var(--border))] overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                   <table className="w-full">
                     <thead className="bg-[hsl(var(--secondary))]">
                       <tr>
@@ -293,7 +318,7 @@ const UserManagement = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[hsl(var(--border))]">
-                      {admins.map((admin) => (
+                      {paginatedAdmins.map((admin) => (
                         <tr key={admin._id} className="hover:bg-[hsl(var(--secondary))]/50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -336,6 +361,14 @@ const UserManagement = () => {
                   </table>
                 </div>
               </div>
+              {/* Paginación para administradores */}
+              {totalAdminPages > 1 && (
+                <Pagination
+                  currentPage={adminCurrentPage}
+                  totalPages={totalAdminPages}
+                  onPageChange={setAdminCurrentPage}
+                />
+              )}
             </div>
           )}
 
@@ -355,7 +388,7 @@ const UserManagement = () => {
               ) : (
                 <>
                   <div className="bg-[hsl(var(--card))] rounded-lg border border-[hsl(var(--border))] overflow-hidden">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                       <table className="w-full">
                         <thead className="bg-[hsl(var(--secondary))]">
                           <tr>

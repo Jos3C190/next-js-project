@@ -66,6 +66,34 @@ const UserForm = ({ isOpen, onClose, onSubmit, user, isLoading = false }: UserFo
     if (!formData.especialidad.trim()) newErrors.especialidad = "La especialidad es requerida"
     if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = "La fecha de nacimiento es requerida"
 
+    // Añadir estas nuevas validaciones:
+    if (formData.fecha_nacimiento) {
+      const fechaNacimiento = new Date(formData.fecha_nacimiento)
+      const hoy = new Date()
+
+      // Validar que la fecha no sea en el futuro
+      if (fechaNacimiento > hoy) {
+        newErrors.fecha_nacimiento = "La fecha de nacimiento no puede ser en el futuro"
+      }
+
+      // Calcular edad
+      let edad = hoy.getFullYear() - fechaNacimiento.getFullYear()
+      const mesActual = hoy.getMonth() - fechaNacimiento.getMonth()
+      if (mesActual < 0 || (mesActual === 0 && hoy.getDate() < fechaNacimiento.getDate())) {
+        edad--
+      }
+
+      // Validar edad mínima (18 años)
+      if (edad < 18) {
+        newErrors.fecha_nacimiento = "La persona debe tener al menos 18 años"
+      }
+
+      // Validar edad máxima (100 años)
+      if (edad > 100) {
+        newErrors.fecha_nacimiento = "La fecha de nacimiento parece incorrecta"
+      }
+    }
+
     // Validar password solo para nuevos usuarios
     if (!user && !formData.password.trim()) {
       newErrors.password = "La contraseña es requerida"
