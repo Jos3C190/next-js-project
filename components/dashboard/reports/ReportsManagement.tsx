@@ -124,7 +124,7 @@ export default function ReportsManagement() {
       </div>
 
       {/* Filtros */}
-      <Card>
+      <Card className="border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />

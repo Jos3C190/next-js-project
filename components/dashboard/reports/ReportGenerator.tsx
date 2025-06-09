@@ -5,8 +5,6 @@ import { motion } from "framer-motion"
 import { Download, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
-import jsPDF from "jspdf"
-import "jspdf-autotable"
 import {
   createPatientsApi,
   createAppointmentsApi,
@@ -14,13 +12,8 @@ import {
   createPaymentsApi,
   createDashboardApi,
 } from "@/lib/api"
-
-// Extender el tipo jsPDF para incluir autoTable
-declare module "jspdf" {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF
-  }
-}
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 
 interface ReportGeneratorProps {
   reportType: string
@@ -214,8 +207,8 @@ export default function ReportGenerator({ reportType, dateRange, onGenerate, isG
         doc.text(`Período: ${dateRange.from} - ${dateRange.to}`, 20, 65)
       }
 
-      // Tabla
-      doc.autoTable({
+      // Tabla - Usando la función autoTable importada
+      autoTable(doc, {
         head: [headers],
         body: rows,
         startY: dateRange.from && dateRange.to ? 75 : 65,
