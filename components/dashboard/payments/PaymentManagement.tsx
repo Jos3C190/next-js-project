@@ -44,7 +44,9 @@ const PaymentManagement = () => {
       })
 
       if (response?.docs) {
-        setPayments(response.docs)
+        // Filtrar pagos que no tienen paciente asignado (paciente eliminado)
+        const validPayments = response.docs.filter((payment: Payment) => payment.paciente)
+        setPayments(validPayments)
         setTotalPages(response.totalPages || 1)
         setTotalItems(response.totalDocs || 0)
       }
@@ -138,6 +140,9 @@ const PaymentManagement = () => {
   }
 
   const filteredPayments = payments.filter((payment) => {
+    // Asegurar que el pago tenga un paciente válido
+    if (!payment.paciente) return false
+
     const normalizedSearchTerm = normalizeText(searchTerm)
 
     const matchesSearch =
