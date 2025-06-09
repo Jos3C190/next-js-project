@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Search, DollarSign, Clock, AlertTriangle, TrendingUp, FileText } from "lucide-react"
+import { Plus, Search, FileText } from "lucide-react"
 import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
-import { type Payment, type PaymentStats, createPaymentsApi } from "@/lib/api"
+import { type Payment, createPaymentsApi } from "@/lib/api"
 import PaymentForm from "./PaymentForm"
 import PaymentsList from "./PaymentsList"
 import Pagination from "../common/Pagination"
@@ -21,7 +21,6 @@ const PaymentManagement = () => {
   const { theme } = useTheme()
   const { apiCall } = useAuthenticatedApi()
   const [payments, setPayments] = useState<Payment[]>([])
-  const [stats, setStats] = useState<PaymentStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
@@ -54,24 +53,8 @@ const PaymentManagement = () => {
     }
   }
 
-  const loadStats = async () => {
-    try {
-      const response = await apiCall(async (token) => {
-        const api = createPaymentsApi(token)
-        return api.getPaymentStats()
-      })
-
-      if (response) {
-        setStats(response)
-      }
-    } catch (error) {
-      console.error("Error loading payment stats:", error)
-    }
-  }
-
   useEffect(() => {
     loadPayments(currentPage)
-    loadStats()
   }, [currentPage])
 
   const handlePageChange = (page: number) => {
@@ -100,9 +83,6 @@ const PaymentManagement = () => {
         return api.deletePayment(id)
       })
 
-      // Actualizar estadísticas en segundo plano
-      await loadStats()
-
       // Opcional: recargar la página actual para mantener la paginación correcta
       // Solo si es necesario para mantener la consistencia
       if (payments.length === 1 && currentPage > 1) {
@@ -121,7 +101,6 @@ const PaymentManagement = () => {
     setShowForm(false)
     setEditingPayment(null)
     await loadPayments(currentPage)
-    await loadStats()
   }
 
   const filteredPayments = payments.filter((payment) => {
@@ -141,13 +120,6 @@ const PaymentManagement = () => {
     return matchesSearch && matchesStatus && matchesMethod
   })
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
-  }
-
   if (loading && !payments.length) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -158,61 +130,6 @@ const PaymentManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Estadísticas */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-[hsl(var(--card))] p-6 rounded-lg shadow-sm border border-[hsl(var(--border))]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Ingresos Totales</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">
-                  {formatCurrency(stats.totalIngresos)}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[hsl(var(--card))] p-6 rounded-lg shadow-sm border border-[hsl(var(--border))]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Ingresos del Mes</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">{formatCurrency(stats.ingresosMes)}</p>
-              </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <TrendingUp className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[hsl(var(--card))] p-6 rounded-lg shadow-sm border border-[hsl(var(--border))]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Pagos Pendientes</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">{stats.pagosPendientes}</p>
-              </div>
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
-                <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[hsl(var(--card))] p-6 rounded-lg shadow-sm border border-[hsl(var(--border))]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">Pagos Vencidos</p>
-                <p className="text-2xl font-bold text-[hsl(var(--foreground))]">{stats.pagosVencidos}</p>
-              </div>
-              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
