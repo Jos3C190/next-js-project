@@ -17,16 +17,16 @@ import { useTheme } from "@/context/ThemeContext"
 
 interface PaymentFormProps {
   payment?: Payment | null
+  patients: Patient[]
+  treatments: Treatment[]
   onSubmit: () => void
   onCancel: () => void
 }
 
-const PaymentForm = ({ payment, onSubmit, onCancel }: PaymentFormProps) => {
+const PaymentForm = ({ payment, patients, treatments, onSubmit, onCancel }: PaymentFormProps) => {
   const { theme } = useTheme()
   const { apiCall } = useAuthenticatedApi()
   const [loading, setLoading] = useState(false)
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [treatments, setTreatments] = useState<Treatment[]>([])
   const [formData, setFormData] = useState({
     paciente: payment?.paciente?._id || "",
     tratamiento: payment?.tratamiento?._id || "",
@@ -43,12 +43,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }: PaymentFormProps) => {
   const [total, setTotal] = useState(payment?.total || 0)
 
   useEffect(() => {
-    loadPatients()
-    loadTreatments()
-  }, [])
-
-  // Calculate totals whenever items change
-  useEffect(() => {
     const calculatedSubtotal = formData.items.reduce((sum, item) => sum + item.cantidad * item.precioUnitario, 0)
     const calculatedImpuestos = calculatedSubtotal * 0.13 // 13% tax
     const calculatedTotal = calculatedSubtotal + calculatedImpuestos
@@ -57,36 +51,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }: PaymentFormProps) => {
     setImpuestos(calculatedImpuestos)
     setTotal(calculatedTotal)
   }, [formData.items])
-
-  const loadPatients = async () => {
-    try {
-      const response = await apiCall(async (token: string) => {
-        const api = createPaymentsApi(token)
-        return api.getAllPatients()
-      })
-
-      if (response?.data) {
-        setPatients(response.data)
-      }
-    } catch (error) {
-      console.error("Error loading patients:", error)
-    }
-  }
-
-  const loadTreatments = async () => {
-    try {
-      const response = await apiCall(async (token: string) => {
-        const api = createPaymentsApi(token)
-        return api.getAllTreatments()
-      })
-
-      if (response?.data) {
-        setTreatments(response.data)
-      }
-    } catch (error) {
-      console.error("Error loading treatments:", error)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

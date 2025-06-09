@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Plus, Search, FileText } from "lucide-react"
 import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
-import { type Payment, createPaymentsApi } from "@/lib/api"
+import { type Payment, type Patient, type Treatment, createPaymentsApi } from "@/lib/api"
 import PaymentForm from "./PaymentForm"
 import PaymentsList from "./PaymentsList"
 import Pagination from "../common/Pagination"
@@ -30,6 +30,8 @@ const PaymentManagement = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [treatments, setTreatments] = useState<Treatment[]>([])
 
   const itemsPerPage = 10
 
@@ -53,8 +55,40 @@ const PaymentManagement = () => {
     }
   }
 
+  const loadPatients = async () => {
+    try {
+      const response = await apiCall(async (token: string) => {
+        const api = createPaymentsApi(token)
+        return api.getAllPatients()
+      })
+
+      if (response?.data) {
+        setPatients(response.data)
+      }
+    } catch (error) {
+      console.error("Error loading patients:", error)
+    }
+  }
+
+  const loadTreatments = async () => {
+    try {
+      const response = await apiCall(async (token: string) => {
+        const api = createPaymentsApi(token)
+        return api.getAllTreatments()
+      })
+
+      if (response?.data) {
+        setTreatments(response.data)
+      }
+    } catch (error) {
+      console.error("Error loading treatments:", error)
+    }
+  }
+
   useEffect(() => {
     loadPayments(currentPage)
+    loadPatients()
+    loadTreatments()
   }, [currentPage])
 
   const handlePageChange = (page: number) => {
@@ -207,6 +241,8 @@ const PaymentManagement = () => {
       {showForm && (
         <PaymentForm
           payment={editingPayment}
+          patients={patients}
+          treatments={treatments}
           onSubmit={handleFormSubmit}
           onCancel={() => {
             setShowForm(false)
