@@ -439,6 +439,50 @@ export interface PaymentsResponse {
   nextPage: number | null
 }
 
+// Interfaces para usuarios del sistema (odontólogos y administradores)
+export interface SystemUser {
+  _id: string
+  nombre: string
+  apellido: string
+  correo: string
+  telefono: string
+  especialidad: string
+  fecha_nacimiento: string
+  password?: string
+  role: "odontologo" | "admin"
+  __v?: number
+}
+
+export interface CreateSystemUserRequest {
+  nombre: string
+  apellido: string
+  correo: string
+  telefono: string
+  especialidad: string
+  fecha_nacimiento: string
+  password: string
+}
+
+export interface UpdateSystemUserRequest {
+  nombre: string
+  apellido: string
+  correo: string
+  telefono: string
+  especialidad: string
+  fecha_nacimiento: string
+  password?: string
+}
+
+export interface SystemUsersResponse {
+  data: SystemUser[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
 // Función helper para hacer peticiones
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?: string): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
@@ -462,14 +506,19 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?
     return simulateApiResponse<T>(endpoint, options.method || "GET", options.body as string)
   }
 
+  console.log("API Request:", { url, method: options.method, body: options.body }) // Para debug
+
   const response = await fetch(url, config)
 
   if (!response.ok) {
     // Intentar obtener el mensaje de error del servidor
     let errorMessage = `Error ${response.status}: ${response.statusText}`
+    let errorDetails = null
 
     try {
       const errorData = await response.json()
+      console.log("Error response:", errorData) // Para debug
+
       if (errorData.message) {
         errorMessage = errorData.message
       } else if (errorData.error) {
@@ -477,8 +526,11 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?
       } else if (errorData.errors && Array.isArray(errorData.errors)) {
         errorMessage = errorData.errors.join(", ")
       }
+
+      errorDetails = errorData
     } catch (parseError) {
       // Si no se puede parsear el error, usar el mensaje por defecto
+      console.log("Could not parse error response")
     }
 
     if (response.status === 401) {
@@ -491,7 +543,10 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}, token?
       throw new Error("Token inválido")
     }
 
-    throw new Error(errorMessage)
+    const error = new Error(errorMessage)
+    ;(error as any).response = response
+    ;(error as any).details = errorDetails
+    throw error
   }
 
   return response.json()
@@ -2069,5 +2124,60 @@ export const createInvoicesApi = (token: string) => ({
       console.error("Error loading treatments:", error)
       return { data: [] }
     }
+  },
+})
+
+// API de usuarios del sistema (odontólogos y administradores)
+export const createSystemUsersApi = (token: string) => ({
+  getSystemUsers: (page = 1, limit = 100): Promise<SystemUsersResponse> => {
+    return apiRequest<SystemUsersResponse>(
+      `/odontologos?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  getSystemUserById: (id: string): Promise<SystemUser> => {
+    return apiRequest<SystemUser>(
+      `/odontologos/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  createSystemUser: (userData: CreateSystemUserRequest): Promise<SystemUser> => {
+    return apiRequest<SystemUser>(
+      "/odontologos",
+      {
+        method: "POST",
+        body: JSON.stringify(userData),
+      },
+      token,
+    )
+  },
+
+  updateSystemUser: (id: string, userData: UpdateSystemUserRequest): Promise<SystemUser> => {
+    return apiRequest<SystemUser>(
+      `/odontologos/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(userData),
+      },
+      token,
+    )
+  },
+
+  deleteSystemUser: (id: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(
+      `/odontologos/${id}`,
+      {
+        method: "DELETE",
+      },
+      token,
+    )
   },
 })

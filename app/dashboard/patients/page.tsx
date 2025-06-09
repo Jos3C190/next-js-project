@@ -8,7 +8,7 @@ import PatientManagement from "@/components/dashboard/patients/PatientManagement
 
 export default function PatientsPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
@@ -16,18 +16,22 @@ export default function PatientsPage() {
     if (isClient && !isAuthenticated) {
       router.push("/")
     }
-  }, [isAuthenticated, router, isClient])
+    // Redirigir a pacientes a my-appointments
+    if (isClient && isAuthenticated && user?.role === "paciente") {
+      router.push("/dashboard/my-appointments")
+    }
+  }, [isAuthenticated, router, isClient, user])
 
   if (!isClient) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-gray-500">Cargando...</p>
+      <div className="h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Cargando...</p>
       </div>
     )
   }
 
-  // Solo renderizar si estamos autenticados
-  if (isClient && !isAuthenticated) {
+  // Solo renderizar si estamos autenticados y NO somos paciente
+  if (isClient && (!isAuthenticated || user?.role === "paciente")) {
     return null
   }
 
