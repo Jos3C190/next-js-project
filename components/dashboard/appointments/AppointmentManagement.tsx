@@ -295,6 +295,11 @@ const AppointmentManagement = () => {
       // Validar que la cita existe y tiene datos mínimos
       if (!appointment || !appointment._id) return false
 
+      // Filtrar citas sin paciente (tanto pacienteId como pacienteTemporalId son null)
+      if (!appointment.pacienteId && !appointment.pacienteTemporalId) {
+        return false
+      }
+
       // Search filter
       const patientName = appointment.pacienteId
         ? `${appointment.pacienteId.nombre || ""} ${appointment.pacienteId.apellido || ""}`

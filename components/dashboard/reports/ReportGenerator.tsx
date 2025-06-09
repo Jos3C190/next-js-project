@@ -83,8 +83,14 @@ export default function ReportGenerator({ reportType, dateRange, onGenerate, isG
           try {
             const appointmentsResponse = await appointmentsApi.getAppointments(1, 1000)
             data = appointmentsResponse.data || []
+
+            // Filtrar citas que no tienen paciente (tanto pacienteId como pacienteTemporalId son null)
+            const validAppointments = data.filter(
+              (appointment: any) => appointment.pacienteId || appointment.pacienteTemporalId,
+            )
+
             headers = ["Paciente", "Odontólogo", "Fecha", "Hora", "Motivo", "Estado"]
-            rows = data.map((appointment: any) => [
+            rows = validAppointments.map((appointment: any) => [
               `${appointment.pacienteId?.nombre || appointment.pacienteTemporalId?.nombre || "N/A"} ${appointment.pacienteId?.apellido || appointment.pacienteTemporalId?.apellido || ""}`.trim(),
               `${appointment.odontologoId?.nombre || "N/A"} ${appointment.odontologoId?.apellido || ""}`.trim(),
               appointment.fecha ? new Date(appointment.fecha).toLocaleDateString() : "N/A",
@@ -104,8 +110,12 @@ export default function ReportGenerator({ reportType, dateRange, onGenerate, isG
           try {
             const treatmentsResponse = await treatmentsApi.getTreatments(1, 1000)
             data = treatmentsResponse.data || []
+
+            // Filtrar tratamientos que no tienen paciente
+            const validTreatments = data.filter((treatment: any) => treatment.paciente)
+
             headers = ["Paciente", "Odontólogo", "Tipo", "Descripción", "Costo", "Estado", "Sesiones"]
-            rows = data.map((treatment: any) => [
+            rows = validTreatments.map((treatment: any) => [
               `${treatment.paciente?.nombre || "N/A"} ${treatment.paciente?.apellido || ""}`.trim(),
               `${treatment.odontologo?.nombre || "N/A"} ${treatment.odontologo?.apellido || ""}`.trim(),
               treatment.tipo || "N/A",
@@ -126,8 +136,12 @@ export default function ReportGenerator({ reportType, dateRange, onGenerate, isG
           try {
             const paymentsResponse = await paymentsApi.getPayments(1, 1000)
             data = paymentsResponse.docs || []
+
+            // Filtrar pagos que no tienen paciente
+            const validPayments = data.filter((payment: any) => payment.paciente)
+
             headers = ["Paciente", "Método Pago", "Total", "Estado", "Fecha Emisión", "Fecha Vencimiento"]
-            rows = data.map((payment: any) => [
+            rows = validPayments.map((payment: any) => [
               `${payment.paciente?.nombre || "N/A"} ${payment.paciente?.apellido || ""}`.trim(),
               payment.metodoPago || "N/A",
               payment.total ? `$${payment.total.toLocaleString()}` : "N/A",
