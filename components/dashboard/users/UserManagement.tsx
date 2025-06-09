@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Search, Edit, Trash2, User, Shield, UserCheck, Filter } from "lucide-react"
+import { Plus, Search, Edit, Trash2, User, Shield, UserCheck, Filter, Eye } from "lucide-react"
 import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
 import { createSystemUsersApi } from "@/lib/api"
 import type { SystemUser, CreateSystemUserRequest, UpdateSystemUserRequest } from "@/lib/api"
 import UserForm from "./UserForm"
+import UserDetailsModal from "./UserDetailsModal"
 import ConfirmModal from "@/components/common/ConfirmModal"
 import Pagination from "@/components/dashboard/common/Pagination"
 
@@ -26,7 +27,9 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRole, setSelectedRole] = useState<"all" | "odontologo" | "admin">("all")
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -202,6 +205,11 @@ const UserManagement = () => {
     setIsFormOpen(true)
   }
 
+  const openDetailsModal = (userId: string) => {
+    setSelectedUserId(userId)
+    setIsDetailsOpen(true)
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-ES")
   }
@@ -242,7 +250,7 @@ const UserManagement = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[hsl(var(--muted-foreground))] h-4 w-4" />
               <input
                 type="text"
-                placeholder="Buscar por nombre, apellido, correo o especialidad (sin acentos)..."
+                placeholder="Buscar por nombre, apellido, correo o especialidad..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -349,8 +357,16 @@ const UserManagement = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button
+                              onClick={() => openDetailsModal(admin._id)}
+                              className="text-gray-600 hover:text-gray-900 mr-3"
+                              title="Ver detalles"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
                               onClick={() => openEditForm(admin)}
                               className="text-blue-600 hover:text-blue-900 mr-3"
+                              title="Editar"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
@@ -441,14 +457,23 @@ const UserManagement = () => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button
+                                  onClick={() => openDetailsModal(dentist._id)}
+                                  className="text-gray-600 hover:text-gray-900 mr-3"
+                                  title="Ver detalles"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button
                                   onClick={() => openEditForm(dentist)}
                                   className="text-blue-600 hover:text-blue-900 mr-3"
+                                  title="Editar"
                                 >
                                   <Edit className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => setUserToDelete(dentist)}
                                   className="text-red-600 hover:text-red-900"
+                                  title="Eliminar"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -485,6 +510,16 @@ const UserManagement = () => {
         onSubmit={selectedUser ? handleEditUser : handleCreateUser}
         user={selectedUser}
         isLoading={isSubmitting}
+      />
+
+      {/* Modal de detalles */}
+      <UserDetailsModal
+        isOpen={isDetailsOpen}
+        onClose={() => {
+          setIsDetailsOpen(false)
+          setSelectedUserId(null)
+        }}
+        userId={selectedUserId}
       />
 
       {/* Modal de confirmación de eliminación */}
