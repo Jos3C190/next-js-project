@@ -133,7 +133,7 @@ export default function ReportsManagement() {
           <CardDescription>Personaliza los parámetros para generar reportes específicos</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Buscar Reporte</Label>
               <Input
@@ -158,28 +158,6 @@ export default function ReportsManagement() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateFrom">Fecha Desde</Label>
-              <Input
-                id="dateFrom"
-                type="date"
-                className="[&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70"
-                value={dateRange.from}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateTo">Fecha Hasta</Label>
-              <Input
-                id="dateTo"
-                type="date"
-                className="[&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70"
-                value={dateRange.to}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-              />
             </div>
           </div>
         </CardContent>
