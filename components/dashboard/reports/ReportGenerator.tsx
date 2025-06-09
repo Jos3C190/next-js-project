@@ -151,13 +151,55 @@ export default function ReportGenerator({ reportType, dateRange, onGenerate, isG
 
         case "activity":
           title = "Reporte de Actividad del Sistema"
-          // Simular datos de actividad ya que no tenemos endpoint específico
-          headers = ["Usuario", "Acción", "Descripción", "Fecha"]
-          rows = [
-            ["Admin Principal", "Login", "Inicio de sesión exitoso", new Date().toLocaleDateString()],
-            ["Dr. López", "Crear Cita", "Nueva cita programada", new Date().toLocaleDateString()],
-            ["Admin Principal", "Crear Paciente", "Nuevo paciente registrado", new Date().toLocaleDateString()],
-          ]
+          try {
+            // Primero obtener el total para traer todos los registros
+            const initialResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/activity?page=1&limit=10`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            )
+
+            if (!initialResponse.ok) {
+              throw new Error(`Error fetching activity: ${initialResponse.status}`)
+            }
+
+            const initialData = await initialResponse.json()
+            const total = initialData.pagination?.total || 10
+
+            // Ahora obtener todos los registros
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/activity?page=1&limit=${total}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            )
+
+            if (!response.ok) {
+              throw new Error(`Error fetching activity: ${response.status}`)
+            }
+
+            const activityData = await response.json()
+            data = activityData.data || []
+
+            headers = ["Usuario", "Rol", "Acción", "Descripción", "Fecha", "Hora"]
+            rows = data.map((activity: any) => [
+              activity.userName || "N/A",
+              activity.userRole || "N/A",
+              activity.action || "N/A",
+              activity.description || "N/A",
+              activity.timestamp ? new Date(activity.timestamp).toLocaleDateString() : "N/A",
+              activity.timestamp ? new Date(activity.timestamp).toLocaleTimeString() : "N/A",
+            ])
+          } catch (error) {
+            console.error("Error fetching activity:", error)
+            headers = ["Usuario", "Rol", "Acción", "Descripción", "Fecha", "Hora"]
+            rows = [["No hay datos disponibles", "", "", "", "", ""]]
+          }
           break
 
         case "statistics":
@@ -226,6 +268,12 @@ export default function ReportGenerator({ reportType, dateRange, onGenerate, isG
           fontSize: 10,
           cellPadding: 5,
         },
+        // Agregar estilos específicos para columnas cuando es reporte de tratamientos
+        ...(reportType === "treatments" && {
+          columnStyles: {
+            3: { cellWidth: 50 }, // Columna de Descripción (índice 3) más ancha
+          },
+        }),
       })
 
       // Pie de página
