@@ -52,6 +52,19 @@ const PaymentForm = ({ payment, patients, treatments, onSubmit, onCancel }: Paym
     setTotal(calculatedTotal)
   }, [formData.items])
 
+  useEffect(() => {
+    // Reset treatment when patient changes if the selected treatment doesn't belong to the new patient
+    if (formData.paciente && formData.tratamiento) {
+      const selectedTreatment = treatments.find((t) => t._id === formData.tratamiento)
+      if (selectedTreatment && selectedTreatment.paciente?._id !== formData.paciente) {
+        setFormData((prev) => ({
+          ...prev,
+          tratamiento: "",
+        }))
+      }
+    }
+  }, [formData.paciente, formData.tratamiento, treatments])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -212,14 +225,28 @@ const PaymentForm = ({ payment, patients, treatments, onSubmit, onCancel }: Paym
                 name="tratamiento"
                 value={formData.tratamiento}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 focus:border-transparent"
+                className="w-full px-3 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--card))] text-[hsl(var(--foreground))] focus:ring-2 focus:ring-red-500 dark:focus:ring-red-400 focus:border-transparent max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
               >
                 <option value="">Sin tratamiento asociado</option>
-                {filteredTreatments.map((treatment) => (
-                  <option key={treatment._id} value={treatment._id}>
-                    {treatment.descripcion} - {treatment.tipo}
-                  </option>
-                ))}
+                {filteredTreatments.map((treatment) => {
+                  // Truncar descripción larga para el select
+                  const shortDescription =
+                    treatment.descripcion.length > 50
+                      ? treatment.descripcion.substring(0, 47) + "..."
+                      : treatment.descripcion
+
+                  const optionText = `${shortDescription} - ${treatment.tipo}`
+
+                  return (
+                    <option
+                      key={treatment._id}
+                      value={treatment._id}
+                      title={`${treatment.descripcion} - ${treatment.tipo} - $${treatment.costo?.toLocaleString() || 0}`}
+                    >
+                      {optionText}
+                    </option>
+                  )
+                })}
               </select>
               {selectedTreatment && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
