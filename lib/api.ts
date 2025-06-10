@@ -1330,6 +1330,46 @@ function simulateApiResponse<T>(endpoint: string, method: string, body?: string)
           facturasVencidas: 1,
           promedioTiempoPago: 7.5,
         } as T)
+      } else if (endpoint.includes("/pacientes/pagos/") && endpoint.includes("/procesar-pago") && method === "POST") {
+        // Simular procesamiento de pago con tarjeta
+        const paymentId = endpoint.split("/")[3]
+        const requestData = JSON.parse(body || "{}")
+
+        // Simular éxito o fallo aleatorio (90% éxito)
+        const success = Math.random() > 0.1
+
+        if (success) {
+          resolve({
+            success: true,
+            message: "Pago procesado exitosamente",
+            payment: {
+              _id: paymentId,
+              estado: "pagado",
+              fechaPago: new Date().toISOString(),
+              metodoPago: "tarjeta",
+            },
+          } as T)
+        } else {
+          resolve({
+            success: false,
+            message: "Error al procesar el pago. Verifique los datos de su tarjeta e intente nuevamente.",
+          } as T)
+        }
+      } else if (endpoint.includes("/pacientes/pagos/") && endpoint.includes("/marcar-pagado") && method === "POST") {
+        // Simular marcado de pago como pagado
+        const paymentId = endpoint.split("/")[3]
+        const requestData = JSON.parse(body || "{}")
+
+        resolve({
+          success: true,
+          message: "Pago marcado como pagado exitosamente",
+          payment: {
+            _id: paymentId,
+            estado: "pagado",
+            fechaPago: new Date().toISOString(),
+            metodoPago: requestData.metodoPago,
+          },
+        } as T)
       }
 
       // Respuesta por defecto
@@ -1926,6 +1966,42 @@ export const createPatientPaymentsApi = (token: string) => ({
     return new Blob([response], {
       type: format === "pdf" ? "application/pdf" : "text/csv",
     })
+  },
+  // Marcar pago como pagado (método simple)
+  markPaymentAsPaid: (
+    paymentId: string,
+    metodoPago: "tarjeta" | "transferencia" | "efectivo",
+  ): Promise<{ success: boolean; message: string; payment?: Payment }> => {
+    return apiRequest<{ success: boolean; message: string; payment?: Payment }>(
+      `/pacientes/pagos/${paymentId}/marcar-pagado`,
+      {
+        method: "POST",
+        body: JSON.stringify({ metodoPago }),
+      },
+      token,
+    )
+  },
+  // Procesar pago con tarjeta de crédito
+  processCardPayment: (
+    paymentId: string,
+    cardData: {
+      cardNumber: string
+      expiryDate: string
+      cvv: string
+      cardholderName: string
+    },
+  ): Promise<{ success: boolean; message: string; payment?: Payment }> => {
+    return apiRequest<{ success: boolean; message: string; payment?: Payment }>(
+      `/pacientes/pagos/${paymentId}/procesar-pago`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          metodoPago: "tarjeta",
+          datosTarjeta: cardData,
+        }),
+      },
+      token,
+    )
   },
 })
 

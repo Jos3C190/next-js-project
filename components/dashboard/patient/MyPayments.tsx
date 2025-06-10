@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/context/AuthContext"
 import { createPatientPaymentsApi, type Payment } from "@/lib/api"
 import PaymentDetailsModal from "./PaymentDetailsModal"
+import PaymentMethodModal from "./PaymentMethodModal"
 
 interface PaymentStats {
   total: number
@@ -58,6 +59,8 @@ const MyPayments = () => {
   })
 
   const [showFilters, setShowFilters] = useState(false)
+
+  const [showPaymentModal, setShowPaymentModal] = useState<Payment | null>(null)
 
   // Cargar datos de la API
   useEffect(() => {
@@ -538,6 +541,14 @@ const MyPayments = () => {
     }
   }
 
+  const handlePayNow = (payment: Payment) => {
+    if (payment.estado === "pagado") {
+      alert("Este pago ya ha sido procesado.")
+      return
+    }
+    setShowPaymentModal(payment)
+  }
+
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -846,6 +857,19 @@ const MyPayments = () => {
                       Ver detalles
                     </button>
 
+                    {payment.estado === "pendiente" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePayNow(payment)
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <CreditCard className="h-4 w-4 mr-1" />
+                        Pagar Ahora
+                      </button>
+                    )}
+
                     {payment.numeroFactura && (
                       <button
                         onClick={(e) => {
@@ -865,6 +889,18 @@ const MyPayments = () => {
           })
         )}
       </div>
+
+      {/* Payment Method Modal */}
+      {showPaymentModal && (
+        <PaymentMethodModal
+          payment={showPaymentModal}
+          onClose={() => setShowPaymentModal(null)}
+          onPaymentSuccess={() => {
+            setShowPaymentModal(null)
+            loadPayments() // Recargar datos
+          }}
+        />
+      )}
 
       {/* Payment Details Modal */}
       {selectedPayment && <PaymentDetailsModal payment={selectedPayment} onClose={() => setSelectedPayment(null)} />}

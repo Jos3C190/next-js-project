@@ -13,6 +13,8 @@ import {
   ArrowUpRight,
 } from "lucide-react"
 import type { Payment } from "@/lib/api"
+import { useState } from "react"
+import PaymentMethodModal from "./PaymentMethodModal"
 
 interface PaymentDetailsModalProps {
   payment: Payment
@@ -20,6 +22,8 @@ interface PaymentDetailsModalProps {
 }
 
 const PaymentDetailsModal = ({ payment, onClose }: PaymentDetailsModalProps) => {
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+
   const getStatusConfig = (payment: Payment) => {
     const now = new Date()
     const dueDate = new Date(payment.fechaVencimiento)
@@ -367,6 +371,14 @@ const PaymentDetailsModal = ({ payment, onClose }: PaymentDetailsModalProps) => 
     }
   }
 
+  const handlePayNow = () => {
+    if (payment.estado === "pagado") {
+      alert("Este pago ya ha sido procesado.")
+      return
+    }
+    setShowPaymentModal(true)
+  }
+
   const statusConfig = getStatusConfig(payment)
   const methodConfig = getMethodConfig(payment.metodoPago)
   const StatusIcon = statusConfig.icon
@@ -520,6 +532,16 @@ const PaymentDetailsModal = ({ payment, onClose }: PaymentDetailsModalProps) => 
 
         {/* Footer */}
         <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+          {payment.estado === "pendiente" && (
+            <button
+              onClick={handlePayNow}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Pagar Ahora
+            </button>
+          )}
+
           <button
             onClick={() => handleDownloadInvoice(payment)}
             className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -536,6 +558,18 @@ const PaymentDetailsModal = ({ payment, onClose }: PaymentDetailsModalProps) => 
           </button>
         </div>
       </div>
+      {/* Payment Method Modal */}
+      {showPaymentModal && (
+        <PaymentMethodModal
+          payment={payment}
+          onClose={() => setShowPaymentModal(false)}
+          onPaymentSuccess={() => {
+            setShowPaymentModal(false)
+            onClose() // Cerrar el modal de detalles
+            window.location.reload() // Recargar para ver cambios
+          }}
+        />
+      )}
     </div>
   )
 }
