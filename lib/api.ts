@@ -1857,6 +1857,78 @@ export const createPatientAppointmentsApi = (token: string) => ({
   },
 })
 
+// API específica para pagos de pacientes
+export const createPatientPaymentsApi = (token: string) => ({
+  // Obtener todos los pagos del paciente autenticado
+  getMyPayments: (page = 1, limit = 10, estado?: string): Promise<PaymentsResponse> => {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    })
+
+    if (estado && estado !== "all") {
+      queryParams.append("estado", estado)
+    }
+
+    return apiRequest<PaymentsResponse>(
+      `/pacientes/pagos/mis-pagos?${queryParams.toString()}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  // Obtener estadísticas de pagos del paciente
+  getMyPaymentStats: (): Promise<{
+    total: number
+    paid: number
+    pending: number
+    overdue: number
+    totalAmount: number
+    paidAmount: number
+    pendingAmount: number
+  }> => {
+    return apiRequest<any>(
+      "/pacientes/pagos/stats",
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  // Obtener detalles de un pago específico
+  getPaymentById: (id: string): Promise<Payment> => {
+    return apiRequest<Payment>(
+      `/pacientes/pagos/${id}`,
+      {
+        method: "GET",
+      },
+      token,
+    )
+  },
+
+  // Descargar factura en PDF
+  downloadInvoice: async (id: string, format = "pdf"): Promise<Blob> => {
+    const response = await apiRequest<any>(
+      `/pacientes/pagos/${id}/factura?format=${format}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: format === "pdf" ? "application/pdf" : "text/csv",
+        },
+      },
+      token,
+    )
+
+    // Manejar la respuesta como un blob para descarga
+    return new Blob([response], {
+      type: format === "pdf" ? "application/pdf" : "text/csv",
+    })
+  },
+})
+
 // API para citas públicas (sin autenticación)
 export const publicAppointmentsApi = {
   // Crear una cita desde la landing page (sin autenticación)

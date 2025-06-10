@@ -57,7 +57,7 @@ const ROLE_PERMISSIONS = {
     "statistics",
   ],
   odontologo: ["dashboard", "patients", "appointments", "records", "treatments"],
-  paciente: ["my-appointments"],
+  paciente: ["my-appointments", "my-payments"],
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {

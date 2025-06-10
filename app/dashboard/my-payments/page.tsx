@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/AuthContext"
 import Layout from "@/components/dashboard/Layout"
-import MyAppointments from "@/components/dashboard/patient/MyAppointments"
+import MyPayments from "@/components/dashboard/patient/MyPayments"
 
-export default function MyAppointmentsPage() {
+export default function MyPaymentsPage() {
   const router = useRouter()
   const { isAuthenticated, userRole, isLoading, isHydrated } = useAuth()
   const [isClient, setIsClient] = useState(false)
@@ -49,7 +49,7 @@ export default function MyAppointmentsPage() {
 
   return (
     <Layout>
-      <MyAppointments />
+      <MyPayments />
     </Layout>
   )
 }

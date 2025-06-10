@@ -46,6 +46,7 @@ const navigation: NavigationItem[] = [
   { name: "Estadísticas", icon: BarChart, path: "/dashboard/statistics", module: "statistics", disabled: true },
   // Módulo específico para pacientes
   { name: "Mis Citas", icon: CalendarCheck, path: "/dashboard/my-appointments", module: "my-appointments" },
+  { name: "Mis Pagos", icon: CreditCard, path: "/dashboard/my-payments", module: "my-payments" },
 ]
 
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
@@ -74,6 +75,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
     if (path.startsWith("/dashboard/reports")) return "Reportes"
     if (path.startsWith("/dashboard/statistics")) return "Estadísticas"
     if (path.startsWith("/dashboard/my-appointments")) return "Mis Citas"
+    if (path.startsWith("/dashboard/my-payments")) return "Mis Pagos"
     return "Panel Principal" // Default
   }
 
