@@ -29,47 +29,69 @@ const MonthlyComparisonChart = () => {
       try {
         setIsLoading(true)
 
-        // Simular datos de comparación mensual
-        const mockData: MonthlyComparison[] = [
-          {
-            metric: "Nuevos Pacientes",
-            currentMonth: 67,
-            previousMonth: 58,
-            change: 15.5,
-            isPositive: true,
-            icon: <TrendingUp className="h-5 w-5" />,
+        // Llamada real al endpoint
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/monthly-comparison`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-          {
-            metric: "Citas Completadas",
-            currentMonth: 142,
-            previousMonth: 156,
-            change: -9.0,
-            isPositive: false,
-            icon: <Calendar className="h-5 w-5" />,
-          },
-          {
-            metric: "Ingresos ($)",
-            currentMonth: 15240,
-            previousMonth: 13890,
-            change: 9.7,
-            isPositive: true,
-            icon: <TrendingUp className="h-5 w-5" />,
-          },
-          {
-            metric: "Tratamientos Iniciados",
-            currentMonth: 89,
-            previousMonth: 76,
-            change: 17.1,
-            isPositive: true,
-            icon: <TrendingUp className="h-5 w-5" />,
-          },
-        ]
+        })
 
-        setComparisons(mockData)
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        }
+
+        const result = await response.json()
+
+        if (result.success && result.data) {
+          // Transformar los datos del API al formato que necesita el componente
+          const transformedData: MonthlyComparison[] = [
+            {
+              metric: "Nuevos Pacientes",
+              currentMonth: result.data.currentPeriod.metrics.newPatients,
+              previousMonth: result.data.comparisonPeriod.metrics.newPatients,
+              change: result.data.changes.newPatients.percentage,
+              isPositive: result.data.changes.newPatients.trend === "up",
+              icon: <TrendingUp className="h-5 w-5" />,
+            },
+            {
+              metric: "Citas Completadas",
+              currentMonth: result.data.currentPeriod.metrics.completedAppointments,
+              previousMonth: result.data.comparisonPeriod.metrics.completedAppointments,
+              change: result.data.changes.completedAppointments.percentage,
+              isPositive: result.data.changes.completedAppointments.trend === "up",
+              icon: <Calendar className="h-5 w-5" />,
+            },
+            {
+              metric: "Ingresos ($)",
+              currentMonth: result.data.currentPeriod.metrics.revenue,
+              previousMonth: result.data.comparisonPeriod.metrics.revenue,
+              change: result.data.changes.revenue.percentage,
+              isPositive: result.data.changes.revenue.trend === "up",
+              icon: <TrendingUp className="h-5 w-5" />,
+            },
+            {
+              metric: "Tratamientos Iniciados",
+              currentMonth: result.data.currentPeriod.metrics.treatmentsStarted,
+              previousMonth: result.data.comparisonPeriod.metrics.treatmentsStarted,
+              change: result.data.changes.treatmentsStarted.percentage,
+              isPositive: result.data.changes.treatmentsStarted.trend === "up",
+              icon: <TrendingUp className="h-5 w-5" />,
+            },
+          ]
+
+          setComparisons(transformedData)
+          console.log("Monthly comparison data loaded:", transformedData)
+        } else {
+          throw new Error("Formato de respuesta inválido")
+        }
+
         setError(null)
       } catch (err) {
         console.error("Error fetching comparison data:", err)
-        setError("Error al cargar datos de comparación")
+        const errorMessage = err instanceof Error ? err.message : "Error desconocido"
+        setError(`Error al cargar datos de comparación: ${errorMessage}`)
       } finally {
         setIsLoading(false)
       }
@@ -84,7 +106,7 @@ const MonthlyComparisonChart = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-lg font-medium text-[hsl(var(--foreground))]">Comparación Mensual</h3>
-          <p className="text-sm text-[hsl(var(--muted-foreground))]">Mes actual vs mes anterior</p>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">Junio 2025 vs Mayo 2025</p>
         </div>
         <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
           <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
