@@ -1,27 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calendar, ChevronDown } from "lucide-react"
 import { motion } from "framer-motion"
+import { useAuth } from "@/context/AuthContext"
 
-// Datos completos para diferentes períodos
-const allData = {
-  year: {
-    labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
-    values: [4000, 3000, 5000, 2780, 1890, 2390, 3490, 4000, 5000, 6000, 7000, 9000],
-  },
-  semester: {
-    labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun"],
-    values: [4000, 3000, 5000, 2780, 1890, 2390],
-  },
-  quarter: {
-    labels: ["Ene", "Feb", "Mar"],
-    values: [4000, 3000, 5000],
-  },
-  month: {
-    labels: ["Semana 1", "Semana 2", "Semana 3", "Semana 4"],
-    values: [1200, 1500, 1300, 1800],
-  },
+// Definición de tipos para la estructura de datos
+interface Week {
+  week: number
+  amount: number
+}
+
+interface Month {
+  monthName: string
+  amount: number
+  weeks?: Week[]
+}
+
+interface RevenueData {
+  data: {
+    months: Month[]
+  }
+}
+
+interface ChartData {
+  labels: string[]
+  values: number[]
 }
 
 // Opciones de filtro
@@ -32,17 +36,216 @@ const filterOptions = [
   { id: "month", label: "Último mes" },
 ]
 
-const RevenueChart = () => {
-  // Estado para el filtro seleccionado
-  const [selectedFilter, setSelectedFilter] = useState("year")
-  // Estado para controlar el menú desplegable
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+// Obtener el mes actual (0-indexed)
+const currentMonth = new Date().getMonth()
 
-  // Obtener datos según el filtro seleccionado
-  const { labels, values } = allData[selectedFilter as keyof typeof allData]
+const RevenueChart = () => {
+  // Obtener el hook de autenticación
+  const { user, token } = useAuth()
+
+  // Estado para el filtro seleccionado
+  const [selectedFilter, setSelectedFilter] = useState<string>("year")
+  // Estado para controlar el menú desplegable
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false)
+  // Estado para almacenar los datos del API
+  const [apiData, setApiData] = useState<RevenueData | null>(null)
+  // Estado para almacenar los datos procesados del gráfico
+  const [chartData, setChartData] = useState<ChartData>({
+    labels: [],
+    values: [],
+  })
+  // Estado para controlar la carga
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  // Estado para controlar errores
+  const [error, setError] = useState<string | null>(null)
+
+  // Función para procesar los datos del API según el filtro seleccionado
+  const processChartData = (apiData: RevenueData | null, filter: string): ChartData => {
+    if (!apiData || !apiData.data || !apiData.data.months) {
+      return {
+        labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+        values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      }
+    }
+
+    const months = apiData.data.months
+    const currentMonthIndex = new Date().getMonth() // 0-indexed (0 = January)
+
+    switch (filter) {
+      case "year":
+        return {
+          labels: months.map((m: Month) => m.monthName),
+          values: months.map((m: Month) => m.amount || 0),
+        }
+      case "semester": {
+        // Get the last 6 months
+        const lastSixMonths: Month[] = []
+        for (let i = 0; i < 6; i++) {
+          // Calculate month index going backwards from current month
+          const monthIndex = (currentMonthIndex - i + 12) % 12
+          if (months[monthIndex]) {
+            lastSixMonths.unshift(months[monthIndex])
+          }
+        }
+        return {
+          labels: lastSixMonths.map((m: Month) => m.monthName),
+          values: lastSixMonths.map((m: Month) => m.amount || 0),
+        }
+      }
+      case "quarter": {
+        // Get the last 3 months
+        const lastThreeMonths: Month[] = []
+        for (let i = 0; i < 3; i++) {
+          // Calculate month index going backwards from current month
+          const monthIndex = (currentMonthIndex - i + 12) % 12
+          if (months[monthIndex]) {
+            lastThreeMonths.unshift(months[monthIndex])
+          }
+        }
+        return {
+          labels: lastThreeMonths.map((m: Month) => m.monthName),
+          values: lastThreeMonths.map((m: Month) => m.amount || 0),
+        }
+      }
+      case "month": {
+        // Use the current month (0-indexed in JavaScript, but 1-indexed in our data)
+        const currentMonthData = months[currentMonthIndex]
+        if (!currentMonthData || !currentMonthData.weeks) {
+          // Si no hay datos, crear un fallback más realista
+          // Un mes típicamente tiene 4-5 semanas, nunca 6
+          const currentDate = new Date()
+          const year = currentDate.getFullYear()
+          const month = currentDate.getMonth()
+
+          // Obtener el primer y último día del mes
+          const firstDay = new Date(year, month, 1)
+          const lastDay = new Date(year, month + 1, 0)
+
+          // Calcular semanas de forma más precisa
+          // Una semana nueva comienza cada lunes
+          const firstWeekDay = firstDay.getDay() // 0 = domingo, 1 = lunes, etc.
+          const daysInMonth = lastDay.getDate()
+
+          // Calcular número de semanas (máximo 5)
+          let weeksInMonth: number
+          if (firstWeekDay === 1) {
+            // Si el mes comienza en lunes
+            weeksInMonth = Math.ceil(daysInMonth / 7)
+          } else {
+            // Días de la primera semana parcial + días restantes divididos en semanas completas
+            const daysInFirstWeek = 8 - firstWeekDay // Días hasta el próximo lunes
+            const remainingDays = daysInMonth - daysInFirstWeek
+            weeksInMonth = 1 + Math.ceil(remainingDays / 7)
+          }
+
+          // Limitar a máximo 5 semanas
+          weeksInMonth = Math.min(weeksInMonth, 5)
+
+          const fallbackLabels: string[] = []
+          const fallbackValues: number[] = []
+          for (let i = 1; i <= weeksInMonth; i++) {
+            fallbackLabels.push(`Semana ${i}`)
+            fallbackValues.push(0)
+          }
+
+          return {
+            labels: fallbackLabels,
+            values: fallbackValues,
+          }
+        }
+
+        // Filtrar semanas válidas y ordenarlas (máximo 5 semanas)
+        const validWeeks = currentMonthData.weeks
+          .filter((w: Week) => w.week > 0 && w.week <= 5)
+          .sort((a: Week, b: Week) => a.week - b.week)
+
+        return {
+          labels: validWeeks.map((w: Week) => `Semana ${w.week}`),
+          values: validWeeks.map((w: Week) => w.amount || 0),
+        }
+      }
+      default:
+        return {
+          labels: months.map((m: Month) => m.monthName),
+          values: months.map((m: Month) => m.amount || 0),
+        }
+    }
+  }
+
+  // Efecto para cargar los datos del API
+  useEffect(() => {
+    const fetchRevenueData = async () => {
+      // No hacer nada si no hay token
+      if (!token) {
+        console.log("No token available, skipping revenue data fetch")
+        setIsLoading(false)
+        return
+      }
+
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        // Verificar si tenemos la URL del API
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL
+        if (!apiUrl) {
+          throw new Error("URL del API no configurada")
+        }
+
+        console.log("Fetching revenue data from:", `${apiUrl}/api/dashboard/revenue-chart`)
+        console.log("Using token:", token ? "Token available" : "No token")
+
+        const response = await fetch(`${apiUrl}/api/dashboard/revenue-chart`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        console.log("Response status:", response.status)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("API Error:", errorText)
+          throw new Error(`Error ${response.status}: ${response.statusText}`)
+        }
+
+        const data = (await response.json()) as RevenueData
+        console.log("Revenue data received:", data)
+
+        setApiData(data)
+        const processedData = processChartData(data, selectedFilter)
+        setChartData(processedData)
+        setError(null)
+      } catch (err) {
+        console.error("Error fetching revenue data:", err)
+        setError(err instanceof Error ? err.message : "No se pudieron cargar los datos")
+
+        // Usar datos de ejemplo en caso de error
+        const fallbackData: ChartData = {
+          labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+          values: [4000, 3000, 5000, 2780, 1890, 2390, 3490, 4000, 5000, 6000, 7000, 9000],
+        }
+        setChartData(fallbackData)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchRevenueData()
+  }, [token, selectedFilter]) // Dependencia del token y del filtro seleccionado
+
+  // Efecto para procesar los datos cuando cambia el filtro
+  useEffect(() => {
+    if (apiData) {
+      const processedData = processChartData(apiData, selectedFilter)
+      setChartData(processedData)
+    }
+  }, [selectedFilter, apiData])
 
   // Encontrar el valor máximo para calcular las alturas relativas
-  const maxValue = Math.max(...values)
+  const maxValue = Math.max(...chartData.values, 1) // Mínimo 1 para evitar división por cero
 
   return (
     <motion.div
@@ -97,35 +300,64 @@ const RevenueChart = () => {
         </div>
       </div>
 
+      {/* Estado de carga */}
+      {isLoading && (
+        <div className="h-[380px] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-400"></div>
+        </div>
+      )}
+
+      {/* Mensaje de error */}
+      {error && !isLoading && (
+        <div className="h-[380px] flex items-center justify-center">
+          <div className="text-red-500 text-center">
+            <p className="text-lg font-medium">Error al cargar datos</p>
+            <p className="text-sm mt-2">{error}</p>
+            <p className="text-xs mt-2 text-[hsl(var(--muted-foreground))]">Mostrando datos de ejemplo</p>
+          </div>
+        </div>
+      )}
+
       {/* Contenedor del gráfico */}
-      <div className="h-[380px] flex items-end justify-between">
-        {labels.map((label, index) => {
-          // Calcular altura relativa con un mínimo para visibilidad
-          const heightPercent = Math.max(10, (values[index] / maxValue) * 100)
-
-          return (
-            <div key={label} className="flex flex-col items-center group">
-              {/* Tooltip */}
-              <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] text-xs rounded py-1 px-2 pointer-events-none border border-[hsl(var(--border))]">
-                ${values[index]}
-              </div>
-
-              {/* Barra con altura calculada y animación */}
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${heightPercent * 2}px` }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="w-8 bg-red-400 hover:bg-red-500 transition-all rounded-t-sm cursor-pointer"
-                style={{
-                  minHeight: "10px",
-                }}
-              />
-              <span className="text-xs mt-2 text-[hsl(var(--muted-foreground))] font-medium">{label}</span>
-              <span className="text-xs text-[hsl(var(--muted-foreground))]">${values[index]}</span>
+      {!isLoading && (
+        <div className="h-[380px] flex items-end justify-between">
+          {chartData.labels.length === 0 ? (
+            <div className="w-full text-center text-[hsl(var(--muted-foreground))]">
+              No hay datos disponibles para este período
             </div>
-          )
-        })}
-      </div>
+          ) : (
+            chartData.labels.map((label, index) => {
+              // Calcular altura relativa con un mínimo para visibilidad
+              const heightPercent = Math.max(10, (chartData.values[index] / maxValue) * 100)
+              const value = chartData.values[index]
+
+              return (
+                <div key={`${label}-${index}`} className="flex flex-col items-center group">
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] text-xs rounded py-1 px-2 pointer-events-none border border-[hsl(var(--border))]">
+                    ${typeof value === "number" ? value.toFixed(2) : "0.00"}
+                  </div>
+
+                  {/* Barra con altura calculada y animación */}
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${heightPercent * 2}px` }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="w-8 bg-red-400 hover:bg-red-500 transition-all rounded-t-sm cursor-pointer"
+                    style={{
+                      minHeight: "10px",
+                    }}
+                  />
+                  <span className="text-xs mt-2 text-[hsl(var(--muted-foreground))] font-medium">{label}</span>
+                  <span className="text-xs text-[hsl(var(--muted-foreground))]">
+                    ${typeof value === "number" ? value.toFixed(2) : "0.00"}
+                  </span>
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
     </motion.div>
   )
 }
