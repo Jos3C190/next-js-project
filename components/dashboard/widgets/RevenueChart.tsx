@@ -251,21 +251,21 @@ const RevenueChart = () => {
     <motion.div
       whileHover={{ boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
       transition={{ duration: 0.2 }}
-      className="bg-[hsl(var(--card))] rounded-lg shadow-md p-6 h-[500px] transition-colors duration-200"
+      className="bg-[hsl(var(--card))] rounded-lg shadow-md p-4 sm:p-6 h-full min-h-[350px] sm:min-h-[400px] lg:min-h-[500px] transition-colors duration-200"
     >
       {/* Encabezado con filtro */}
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-[hsl(var(--foreground))]">Ingresos Mensuales</h3>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
+        <h3 className="text-base sm:text-lg font-medium text-[hsl(var(--foreground))]">Ingresos Mensuales</h3>
 
         {/* Menú desplegable para filtros */}
         <div className="relative">
           <button
-            className="flex items-center text-sm text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--card-hover))] px-3 py-2 rounded-md transition-colors duration-200"
+            className="flex items-center text-xs sm:text-sm text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] hover:bg-[hsl(var(--card-hover))] px-2 sm:px-3 py-2 rounded-md transition-colors duration-200 w-full sm:w-auto justify-center sm:justify-start"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <Calendar className="h-4 w-4 mr-2 text-red-400" />
-            {filterOptions.find((option) => option.id === selectedFilter)?.label}
-            <ChevronDown className="h-4 w-4 ml-2" />
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-red-400" />
+            <span className="truncate">{filterOptions.find((option) => option.id === selectedFilter)?.label}</span>
+            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-2 flex-shrink-0" />
           </button>
 
           {/* Opciones del menú desplegable */}
@@ -274,7 +274,7 @@ const RevenueChart = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute right-0 mt-1 w-48 bg-[hsl(var(--card))] rounded-md shadow-lg z-10 border border-[hsl(var(--border))]"
+              className="absolute right-0 mt-1 w-full sm:w-48 bg-[hsl(var(--card))] rounded-md shadow-lg z-10 border border-[hsl(var(--border))]"
             >
               <ul className="py-1">
                 {filterOptions.map((option) => (
@@ -302,25 +302,27 @@ const RevenueChart = () => {
 
       {/* Estado de carga */}
       {isLoading && (
-        <div className="h-[380px] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-400"></div>
+        <div className="h-[280px] sm:h-[320px] lg:h-[380px] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-red-400"></div>
         </div>
       )}
 
       {/* Mensaje de error */}
       {error && !isLoading && (
-        <div className="h-[380px] flex items-center justify-center">
-          <div className="text-red-500 text-center">
-            <p className="text-lg font-medium">Error al cargar datos</p>
-            <p className="text-sm mt-2">{error}</p>
-            <p className="text-xs mt-2 text-[hsl(var(--muted-foreground))]">Mostrando datos de ejemplo</p>
+        <div className="h-[280px] sm:h-[320px] lg:h-[380px] flex items-center justify-center">
+          <div className="text-red-500 text-center px-4">
+            <p className="text-sm sm:text-lg font-medium">Error al cargar datos</p>
+            <p className="text-xs sm:text-sm mt-2">{error}</p>
+            <p className="text-[10px] sm:text-xs mt-2 text-[hsl(var(--muted-foreground))]">
+              Mostrando datos de ejemplo
+            </p>
           </div>
         </div>
       )}
 
       {/* Contenedor del gráfico */}
       {!isLoading && (
-        <div className="h-[380px] flex items-end justify-between">
+        <div className="h-[280px] sm:h-[320px] lg:h-[380px] flex items-end justify-between px-2 sm:px-0">
           {chartData.labels.length === 0 ? (
             <div className="w-full text-center text-[hsl(var(--muted-foreground))]">
               No hay datos disponibles para este período
@@ -332,24 +334,28 @@ const RevenueChart = () => {
               const value = chartData.values[index]
 
               return (
-                <div key={`${label}-${index}`} className="flex flex-col items-center group">
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] text-xs rounded py-1 px-2 pointer-events-none border border-[hsl(var(--border))]">
+                <div key={`${label}-${index}`} className="flex flex-col items-center group relative">
+                  {/* Tooltip responsivo */}
+                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] text-[10px] sm:text-xs rounded py-1 px-2 pointer-events-none border border-[hsl(var(--border))] whitespace-nowrap left-1/2 transform -translate-x-1/2 z-20">
                     ${typeof value === "number" ? value.toFixed(2) : "0.00"}
                   </div>
 
-                  {/* Barra con altura calculada y animación */}
+                  {/* Barra con ancho responsivo */}
                   <motion.div
                     initial={{ height: 0 }}
-                    animate={{ height: `${heightPercent * 2}px` }}
+                    animate={{
+                      height: `${Math.min(heightPercent * (window.innerWidth < 640 ? 1.5 : window.innerWidth < 1024 ? 2 : 2.5), window.innerWidth < 640 ? 120 : window.innerWidth < 1024 ? 160 : 200)}px`,
+                    }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="w-8 bg-red-400 hover:bg-red-500 transition-all rounded-t-sm cursor-pointer"
+                    className="w-4 sm:w-6 lg:w-8 bg-red-400 hover:bg-red-500 transition-all rounded-t-sm cursor-pointer"
                     style={{
                       minHeight: "10px",
                     }}
                   />
-                  <span className="text-xs mt-2 text-[hsl(var(--muted-foreground))] font-medium">{label}</span>
-                  <span className="text-xs text-[hsl(var(--muted-foreground))]">
+                  <span className="text-[10px] sm:text-xs mt-1 sm:mt-2 text-[hsl(var(--muted-foreground))] font-medium text-center leading-tight">
+                    {label}
+                  </span>
+                  <span className="text-[9px] sm:text-xs text-[hsl(var(--muted-foreground))] text-center">
                     ${typeof value === "number" ? value.toFixed(2) : "0.00"}
                   </span>
                 </div>
