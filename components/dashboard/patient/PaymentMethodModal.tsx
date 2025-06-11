@@ -316,7 +316,7 @@ const PaymentMethodModal = ({ payment, onClose, onPaymentSuccess }: PaymentMetho
               <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Datos para transferencia:</h4>
               <div className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
                 <p>
-                  <strong>Banco:</strong> Banco Nacional de Costa Rica
+                  <strong>Banco:</strong> Banco Agrícola de El Salvador
                 </p>
                 <p>
                   <strong>Cuenta:</strong> 123-456-789-0
@@ -331,7 +331,8 @@ const PaymentMethodModal = ({ payment, onClose, onPaymentSuccess }: PaymentMetho
               <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-800/30 rounded border-l-4 border-blue-400">
                 <p className="text-xs text-blue-700 dark:text-blue-300">
                   <strong>Importante:</strong> Una vez realizada la transferencia, el estado del pago se actualizará
-                  automáticamente en 24-48 horas. Si necesitas confirmación inmediata, contacta a la clínica.
+                  automáticamente en 24-48 horas. Si necesitas confirmación inmediata, contacta a la clínica en San
+                  Miguel, El Salvador.
                 </p>
               </div>
             </div>
@@ -347,7 +348,7 @@ const PaymentMethodModal = ({ payment, onClose, onPaymentSuccess }: PaymentMetho
                   <strong>Horarios:</strong> Lunes a Viernes 8:00 AM - 6:00 PM
                 </p>
                 <p>
-                  <strong>Dirección:</strong> San José, Costa Rica
+                  <strong>Dirección:</strong> San Miguel, El Salvador
                 </p>
                 <p className="mt-2">
                   <strong>Referencia:</strong> {payment.numeroFactura}

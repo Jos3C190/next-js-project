@@ -74,7 +74,7 @@ const PaymentDetailsModal = ({ payment, onClose }: PaymentDetailsModalProps) => 
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-CR", {
+    return new Date(dateString).toLocaleDateString("es-SV", {
       day: "2-digit",
       month: "long",
       year: "numeric",
@@ -114,7 +114,7 @@ const PaymentDetailsModal = ({ payment, onClose }: PaymentDetailsModalProps) => 
 
       doc.setFontSize(12)
       doc.setFont("helvetica", "normal")
-      doc.text("Cuidando tu sonrisa con excelencia", 40, 32)
+      doc.text("San Miguel, El Salvador", 40, 32)
       doc.text("Tel: (+503) 7850-9957 | info@clinicadentallinares.com", 40, 38)
 
       // Información de la factura (lado derecho)
@@ -354,7 +354,7 @@ const PaymentDetailsModal = ({ payment, onClose }: PaymentDetailsModalProps) => 
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")
       doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2])
-      doc.text("www.clinicadentallinares.com", 105, pageHeight - 18, { align: "center" })
+      doc.text("San Miguel, El Salvador | www.clinicadentallinares.com", 105, pageHeight - 18, { align: "center" })
       doc.text("Síguenos en redes sociales: @ClinicaDentalLinares", 105, pageHeight - 13, { align: "center" })
 
       // Número de página
